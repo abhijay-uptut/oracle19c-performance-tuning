@@ -93,6 +93,7 @@ Step 3: Insert 300,000 transaction rows
 
 Paste this and press F5:
 
+```
 BEGIN
   FOR i IN 1..300000 LOOP
     INSERT INTO transactions (
@@ -135,4 +136,4 @@ END;
 
 COMMIT;
 
-This may take a little time. Send me the final output.
+```
