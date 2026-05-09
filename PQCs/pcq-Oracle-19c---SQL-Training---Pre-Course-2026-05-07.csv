@@ -1,0 +1,8 @@
+"Participant","Email","What is your current experience level with Oracle Database?","Which Oracle tuning tools have you used before?","How confident are you in interpreting SQL execution plans?","What specific SQL tuning challenges do you currently face?","Have you previously participated in any SQL tuning workshops?","Which areas of SQL tuning are you most interested in?","Please describe your experience with Oracle SQL and PL/SQL.","Do you have access to Oracle 19c?","Any other things trainer should help you with. ","Submitted At"
+"khann kosal","khannkosal5@gmail.com","Intermediate","Yes","2","identify issue with rereview AWR,ADDM ,Plan","No","Yes","Performance tuning using AWR/ASH reports and execution plans
+Troubleshooting locking, blocking, and wait events (e.g., enqueue waits, I/O contention)
+Working with partitioned tables and large datasets
+","Yes","cover all points","5/7/2026, 9:25:30 AM"
+"Piseth Ben","ben.piseth@acledabank.com.kh","Intermediate","Yes","2","Difficult to identify the issue, interpret the report (AWR, ADDM, Execution Plan, ...) and apply the appropriate solution to fix the problem","No","Yes","I mostly use explain plan and SQL Tuning advisor to review the the execution plan and check the recommendation for a specific query. 
+Interpreting explain plan is quite challenge. There are many operators, and I am not sure how those operators work. I also check on the AWR and ADDM to find the high performance query and try to tune it. Mostly I check and find for index recommendation. ","Yes","I am interesting with the course outline, plz help to cover all points and detail explain and also include the real case if possible.","5/7/2026, 9:15:12 AM"
+"Yashank","","Beginner","Yes","2","-","No","Yes","-","Yes","-","5/6/2026, 2:14:10 PM"
