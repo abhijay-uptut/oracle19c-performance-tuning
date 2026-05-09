@@ -1070,7 +1070,7 @@ NOT:
 
 # SECTION 1 — WHY EXECUTION PLANS MATTER (10:45 – 10:55)
 
-# Slide 1 — Opening
+# Slide 18 — Opening
 
 ## Slide Content
 
@@ -1099,7 +1099,7 @@ Execution plans help answer these questions.”
 
 ---
 
-# Slide 2 — Real Production Scenario
+# Slide 19 — Real Production Scenario
 
 ## Slide Content
 
@@ -1152,7 +1152,7 @@ Start with:
 
 ---
 
-# Slide 3 — Demo Objective
+# Slide 20 — Demo Objective
 
 ## Slide Content
 
@@ -1227,7 +1227,7 @@ ALTER SESSION SET statistics_level = ALL;
 
 ---
 
-# Slide 4 — Query Under Investigation
+# Slide 21 — Query Under Investigation
 
 ## Slide Content
 
@@ -1274,7 +1274,7 @@ SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
 
 ---
 
-# Slide 5 — Actual Runtime Plan
+# Slide 22 — Actual Runtime Plan
 
 ## Slide Content
 
@@ -1330,7 +1330,7 @@ Do NOT overload them.
 
 ---
 
-# Slide 6 — Plan Reading Priority
+# Slide 23 — Plan Reading Priority
 
 ## Slide Content
 
@@ -1360,7 +1360,7 @@ Senior DBAs usually look at:
 
 ---
 
-# Slide 7 — Important Plan Operations
+# Slide 24 — Important Plan Operations
 
 ## Slide Content
 
@@ -1390,7 +1390,7 @@ That is the real DBA skill.”
 
 ---
 
-# Slide 8 — Full Table Scan
+# Slide 25 — Full Table Scan
 
 ## Slide Content
 
@@ -1424,7 +1424,7 @@ full scan may actually be correct.”
 
 ---
 
-# Slide 9 — INDEX RANGE SCAN
+# Slide 26 — INDEX RANGE SCAN
 
 ## Slide Content
 
@@ -1450,7 +1450,7 @@ WHERE account_id = 5001
 
 ---
 
-# Slide 10 — Predicate Information
+# Slide 27 — Predicate Information
 
 ## Slide Content
 
@@ -1491,7 +1491,7 @@ filter("STATUS"='FAILED')
 
 # SECTION 4 — OPTIMIZER MISMATCH & BAD DECISIONS (11:30 – 11:45)
 
-# Slide 11 — E-Rows vs A-Rows
+# Slide 28 — E-Rows vs A-Rows
 
 ## Slide Content
 
@@ -1743,7 +1743,7 @@ It tells us whether the optimizer’s assumptions match reality.”
 
 ---
 
-# Slide 12 — Cost Is NOT Runtime
+# Slide 29 — Cost Is NOT Runtime
 
 ## Slide Content
 
@@ -1776,7 +1776,7 @@ Always connect plans with business workload.”
 
 ---
 
-# Slide 13 — Runtime Evidence Matters
+# Slide 30 — Runtime Evidence Matters
 
 ## Slide Content
 
@@ -1799,7 +1799,7 @@ not estimated diagrams.”
 
 # SECTION 5 — LAB: DBA PLAN ANALYSIS (11:45 – 11:55)
 
-# Slide 14 — Lab Objective
+# Slide 31 — Lab Objective
 
 ## Slide Content
 
@@ -1866,7 +1866,7 @@ WHERE status='FAILED';
 
 # SECTION 6 — SUMMARY & TRANSITION (11:55 – 12:00)
 
-# Slide 15 — Final DBA Message
+# Slide 32 — Final DBA Message
 
 ## Slide Content
 
@@ -1886,7 +1886,7 @@ Always validate runtime behavior.”
 
 ---
 
-# Slide 16 — Enterprise DBA Workflow
+# Slide 33 — Enterprise DBA Workflow
 
 ## Slide Content
 
