@@ -42,3 +42,16 @@ Step 3: Create lab user
 ```
 CREATE USER abhijay IDENTIFIED BY abhijay123;
 ```
+
+Then give permissions:
+
+```
+GRANT CONNECT, RESOURCE, DBA TO abhijay;
+ALTER USER abhijay QUOTA UNLIMITED ON USERS;
+```
+For training labs, this is fine.
+
+Run this inside SQLPlus:
+```
+conn abhijay/abhijay123@orclpdb1
+```
