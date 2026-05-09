@@ -137,3 +137,22 @@ END;
 COMMIT;
 
 ```
+
+Great ✅ Step 3 done. You now have **300,000 transactions**.
+
+## Step 4: Verify row count
+
+Run this:
+
+```sql
+SELECT COUNT(*) AS total_transactions
+FROM transactions;
+```
+
+Expected:
+
+```text
+300000
+```
+
+Send me the output.
