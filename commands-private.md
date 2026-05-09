@@ -156,3 +156,46 @@ Expected:
 ```
 
 Send me the output.
+
+Perfect ✅ Step 4 done.
+
+Small important note: your inserted data used `FAILED` every 5 rows, but updated `FIRST.md` expects `FAILED` every 20 rows. No issue — we’ll fix it now so the histogram demo works properly.
+
+## Step 5: Adjust status skew for updated lab
+
+Run this with **F5**:
+
+```sql
+UPDATE transactions
+SET status =
+  CASE
+    WHEN MOD(transaction_id, 20) = 0 THEN 'FAILED'
+    ELSE 'SUCCESS'
+  END;
+
+COMMIT;
+```
+
+Meaning:
+
+* `FAILED` becomes around **5%** of rows
+* `SUCCESS` becomes around **95%**
+* This is needed for the skew/histogram demo
+
+After that, run:
+
+```sql
+SELECT status, COUNT(*) AS total_rows
+FROM transactions
+GROUP BY status
+ORDER BY status;
+```
+
+Expected roughly:
+
+```text
+FAILED    15000
+SUCCESS   285000
+```
+
+Run both and send output.
