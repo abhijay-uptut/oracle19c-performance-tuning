@@ -449,11 +449,13 @@ Example:
 ```sql
 SELECT sql_id,
        executions,
-       elapsed_time,
+       ROUND(elapsed_time/1000000,2) AS elapsed_sec,
        buffer_gets,
-       disk_reads
+       disk_reads,
+       SUBSTR(sql_text,1,80) AS sql_text
 FROM v$sql
-WHERE sql_text LIKE '%transactions%';
+WHERE LOWER(sql_text) LIKE '%transactions%'
+ORDER BY buffer_gets DESC;
 ```
 
 ---
