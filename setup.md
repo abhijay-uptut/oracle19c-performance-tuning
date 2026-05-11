@@ -1,5 +1,11 @@
 Here’s the clean command history you can save.
 
+## 0. change to super user oracle
+```
+su - oracle
+```
+
+
 ## 1. Edit listener host
 
 ```bash
