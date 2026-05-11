@@ -1390,69 +1390,844 @@ Why did Oracle choose this?
 
 That is the real DBA skill.”
 
+Ask trainees:
+
+* “Which operation usually means Oracle read the whole table?”
+* “Which operation usually means a primary key lookup?”
+* “Which operation tells us Oracle had to sort rows?”
+
+Expected answers:
+
+* `TABLE ACCESS FULL`
+* `INDEX UNIQUE SCAN`
+* `SORT ORDER BY`
+
 ---
 
-# Slide 25 — Full Table Scan
+# Slide 25 — Common Code To Generate Runtime Plans
 
 ## Slide Content
 
-# TABLE ACCESS FULL
+Use this pattern for every operation demo:
 
-Not always bad.
+```sql
+ALTER SESSION SET statistics_level = ALL;
+SET LINESIZE 200
+SET PAGESIZE 100
+```
 
-Good when:
+Run the SQL with `GATHER_PLAN_STATISTICS`:
 
-* large percentage of table needed
-* table is small
-* index is not selective
-* optimizer estimates scan cheaper
+```sql
+SELECT /*+ GATHER_PLAN_STATISTICS */
+       ...
+FROM ...
+WHERE ...;
+```
+
+Then read the actual runtime plan:
+
+```sql
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    NULL,
+    NULL,
+    'ALLSTATS LAST +PREDICATE +ALIAS'
+  )
+);
+```
+
+Look mainly at:
+
+* `Operation`
+* `Name`
+* `Starts`
+* `E-Rows`
+* `A-Rows`
+* `Buffers`
+* `Predicate Information`
 
 ---
 
 ## Trainer Delivery
 
-“One of the biggest tuning mistakes:
-forcing indexes everywhere.
+“For this section, we are deliberately generating specific plan operations.
 
-If SQL needs 70% of the table,
-full scan may actually be correct.”
+In production, we do not tune by forcing an operation first.
+
+We first observe the real SQL, then understand why Oracle selected the plan.”
+
+Code explanation:
+
+* `statistics_level = ALL` allows Oracle to collect runtime row-source statistics.
+* `GATHER_PLAN_STATISTICS` collects execution statistics for this SQL.
+* `DISPLAY_CURSOR` shows the actual plan used by the cursor.
+* `ALLSTATS LAST` shows actual rows and buffers from the last execution.
+* `+PREDICATE` shows how Oracle applied filters and access conditions.
 
 ---
 
-# Ask The Room
-
-* “Would index help Query 1 from Slot 1?”
-* “Would full scan make sense there?”
-
----
-
-# Slide 26 — INDEX RANGE SCAN
+# Slide 26 — Setup For Operation Demos
 
 ## Slide Content
 
-# INDEX RANGE SCAN
+Use the existing `transactions` table from Slot 1.
 
-Usually good when:
+Create supporting indexes only if they do not already exist:
 
-* filter is selective
-* small row set needed
-* index matches predicate
+```sql
+DECLARE
+  v_count NUMBER;
+BEGIN
+  SELECT COUNT(*)
+  INTO v_count
+  FROM user_indexes
+  WHERE index_name = 'IDX_TXN_ACCOUNT';
 
-Example:
+  IF v_count = 0 THEN
+    EXECUTE IMMEDIATE
+      'CREATE INDEX idx_txn_account ON transactions(account_id)';
+  END IF;
 
-```sql id="jlwm7v"
-WHERE account_id = 5001
+  SELECT COUNT(*)
+  INTO v_count
+  FROM user_indexes
+  WHERE index_name = 'IDX_TXN_CUSTOMER';
+
+  IF v_count = 0 THEN
+    EXECUTE IMMEDIATE
+      'CREATE INDEX idx_txn_customer ON transactions(customer_id)';
+  END IF;
+END;
+/
+```
+
+Create a small customer table for join demos:
+
+```sql
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TABLE customers_demo PURGE';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+CREATE TABLE customers_demo AS
+SELECT LEVEL AS customer_id,
+       'CUSTOMER_' || LEVEL AS customer_name,
+       CASE
+         WHEN MOD(LEVEL,10) = 0 THEN 'VIP'
+         ELSE 'REGULAR'
+       END AS customer_type
+FROM dual
+CONNECT BY LEVEL <= 5000;
+
+ALTER TABLE customers_demo
+ADD CONSTRAINT pk_customers_demo
+PRIMARY KEY(customer_id);
+```
+
+Gather fresh stats:
+
+```sql
+BEGIN
+  DBMS_STATS.GATHER_TABLE_STATS(
+    ownname => USER,
+    tabname => 'TRANSACTIONS',
+    cascade => TRUE
+  );
+
+  DBMS_STATS.GATHER_TABLE_STATS(
+    ownname => USER,
+    tabname => 'CUSTOMERS_DEMO',
+    cascade => TRUE
+  );
+END;
+/
 ```
 
 ---
 
 ## Trainer Delivery
 
-“Index scan is useful when Oracle can avoid reading most of the table.”
+“Before generating plan operations, we need predictable objects.
+
+The first block creates indexes only if they are missing, so the script is safe to rerun.
+
+The `customers_demo` table gives us a small parent table for join examples.
+
+After creating or changing objects, we gather statistics so the optimizer has current object and index information.”
+
+What we are going to do:
+
+* use `transactions` for access path demos
+* use `customers_demo` plus `transactions` for join demos
+* compare the operation name with actual rows and buffers
 
 ---
 
-# Slide 27 — Predicate Information
+# Slide 27 — TABLE ACCESS FULL
+
+## Slide Content
+
+Meaning:
+
+```text
+Oracle reads table blocks directly instead of navigating through an index.
+```
+
+Generate it:
+
+```sql
+SELECT /*+ GATHER_PLAN_STATISTICS FULL(t) */
+       COUNT(*)
+FROM transactions t
+WHERE status = 'SUCCESS';
+```
+
+Display the plan:
+
+```sql
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    NULL,
+    NULL,
+    'ALLSTATS LAST +PREDICATE'
+  )
+);
+```
+
+Identify it:
+
+```text
+Operation            Name
+------------------   ------------
+TABLE ACCESS FULL    TRANSACTIONS
+```
+
+Predicate section usually shows:
+
+```text
+filter("T"."STATUS"='SUCCESS')
+```
+
+Use case:
+
+* large percentage of table is needed
+* table is small
+* available index is not selective enough
+* full scan is cheaper than many random table lookups
+
+---
+
+## Trainer Delivery
+
+“Full table scan is not automatically bad.
+
+If most rows qualify, reading the table directly may be cheaper than bouncing between an index and the table thousands of times.”
+
+Code explanation:
+
+* `FULL(t)` asks Oracle to consider a full scan on `transactions`.
+* `COUNT(*)` keeps output small while still forcing Oracle to evaluate the predicate.
+* `status = 'SUCCESS'` normally returns a large portion of this training table.
+
+Ask trainees:
+
+* “Is `TABLE ACCESS FULL` always a tuning problem?”
+* “Why might Oracle avoid an index here?”
+
+Expected answers:
+
+* “No, it can be correct when many rows are needed.”
+* “Many index-to-table lookups may cost more than scanning the table once.”
+
+---
+
+# Slide 28 — INDEX RANGE SCAN
+
+## Slide Content
+
+Meaning:
+
+```text
+Oracle scans a range of entries in an index.
+```
+
+Generate it:
+
+```sql
+SELECT /*+ GATHER_PLAN_STATISTICS INDEX(t idx_txn_account) */
+       COUNT(*)
+FROM transactions t
+WHERE account_id = 5001;
+```
+
+Display the plan:
+
+```sql
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    NULL,
+    NULL,
+    'ALLSTATS LAST +PREDICATE'
+  )
+);
+```
+
+Identify it:
+
+```text
+Operation          Name
+----------------   ---------------
+INDEX RANGE SCAN   IDX_TXN_ACCOUNT
+```
+
+Predicate section:
+
+```text
+access("T"."ACCOUNT_ID"=5001)
+```
+
+Use case:
+
+* predicate is selective
+* column is indexed
+* multiple rows can match the value
+* range predicates are used, such as `=`, `BETWEEN`, `>`, `<`, or prefix `LIKE`
+
+More examples:
+
+```sql
+SELECT /*+ GATHER_PLAN_STATISTICS INDEX(t idx_txn_account) */
+       COUNT(*)
+FROM transactions t
+WHERE account_id BETWEEN 5001 AND 5010;
+```
+
+---
+
+## Trainer Delivery
+
+“Here Oracle can navigate to a small part of the index instead of scanning the whole table.
+
+The important word is `RANGE`.
+
+It does not mean only `BETWEEN`; it also appears when a non-unique indexed column can return multiple matching entries.”
+
+Code explanation:
+
+* `INDEX(t idx_txn_account)` points Oracle toward the account index.
+* `account_id = 5001` can match multiple rows because `account_id` is not unique.
+* The predicate should appear as an `access` predicate because Oracle can use it to enter the index.
+
+Ask trainees:
+
+* “Why is this not an `INDEX UNIQUE SCAN`?”
+
+Expected answer:
+
+* “Because `account_id` is not declared unique, so multiple transactions can have the same account id.”
+
+---
+
+# Slide 29 — INDEX UNIQUE SCAN
+
+## Slide Content
+
+Meaning:
+
+```text
+Oracle uses a unique index and expects at most one matching row.
+```
+
+The `transactions` table has a primary key on `transaction_id`.
+
+Generate it:
+
+```sql
+SELECT /*+ GATHER_PLAN_STATISTICS */
+       transaction_id
+FROM transactions
+WHERE transaction_id = 1001;
+```
+
+Display the plan:
+
+```sql
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    NULL,
+    NULL,
+    'ALLSTATS LAST +PREDICATE'
+  )
+);
+```
+
+Identify it:
+
+```text
+Operation           Name
+-----------------   ----------------
+INDEX UNIQUE SCAN   <PRIMARY_KEY_INDEX>
+```
+
+Predicate section:
+
+```text
+access("TRANSACTION_ID"=1001)
+```
+
+Use case:
+
+* primary key lookup
+* unique key lookup
+* query predicate uses all columns of a unique index
+
+Trainer note:
+
+The primary key index name may be system-generated unless you explicitly named the constraint or index. Focus on the operation, not only the index name.
+
+---
+
+## Trainer Delivery
+
+“This is the cleanest lookup pattern.
+
+Oracle uses a unique index because `transaction_id` is the primary key.
+
+When the predicate uses the unique key, Oracle knows there can be at most one matching row.”
+
+Code explanation:
+
+* `transaction_id = 1001` uses the primary key.
+* The operation should be `INDEX UNIQUE SCAN`.
+* If the query selects only indexed columns, Oracle may not need to visit the table.
+
+Ask trainees:
+
+* “What makes this unique compared with `account_id = 5001`?”
+
+Expected answer:
+
+* “`transaction_id` is the primary key, but `account_id` can repeat.”
+
+---
+
+# Slide 30 — TABLE ACCESS BY ROWID
+
+## Slide Content
+
+Meaning:
+
+```text
+Oracle finds row addresses from an index, then visits the table rows by ROWID.
+```
+
+Generate it:
+
+```sql
+SELECT /*+ GATHER_PLAN_STATISTICS INDEX(t idx_txn_account) */
+       *
+FROM transactions t
+WHERE account_id = 5001;
+```
+
+Display the plan:
+
+```sql
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    NULL,
+    NULL,
+    'ALLSTATS LAST +PREDICATE'
+  )
+);
+```
+
+Identify it:
+
+```text
+Operation                             Name
+-----------------------------------   ---------------
+TABLE ACCESS BY INDEX ROWID           TRANSACTIONS
+INDEX RANGE SCAN                      IDX_TXN_ACCOUNT
+```
+
+Oracle may also display:
+
+```text
+TABLE ACCESS BY INDEX ROWID BATCHED
+```
+
+Why it appears:
+
+* the index locates matching rowids
+* `SELECT *` needs columns not stored in the index
+* Oracle must visit the table to fetch the remaining columns
+
+Compare with an index-only query:
+
+```sql
+SELECT /*+ GATHER_PLAN_STATISTICS INDEX(t idx_txn_account) */
+       account_id
+FROM transactions t
+WHERE account_id = 5001;
+```
+
+Expected difference:
+
+```text
+Index-only query may avoid TABLE ACCESS BY INDEX ROWID.
+SELECT * usually requires table lookup after index access.
+```
+
+---
+
+## Trainer Delivery
+
+“An index scan is not always the full cost.
+
+If the query needs table columns outside the index, Oracle still has to visit the table.”
+
+Code explanation:
+
+* The index returns rowids for matching `account_id` values.
+* `SELECT *` asks for columns that are not in `idx_txn_account`.
+* Oracle uses the rowids to fetch the full rows from the table.
+
+Ask trainees:
+
+* “Why does `COUNT(*)` often avoid table lookup, but `SELECT *` needs it?”
+
+Expected answer:
+
+* “The index can answer the count or indexed-column query, but `SELECT *` needs table columns not stored in that index.”
+
+---
+
+# Slide 31 — NESTED LOOPS
+
+## Slide Content
+
+Meaning:
+
+```text
+Oracle reads rows from one source, then probes another source repeatedly.
+```
+
+Generate it with a selective parent row:
+
+```sql
+SELECT /*+ GATHER_PLAN_STATISTICS
+           LEADING(c)
+           USE_NL(t)
+           INDEX(t idx_txn_customer) */
+       c.customer_id,
+       c.customer_name,
+       t.transaction_id,
+       t.amount
+FROM customers_demo c
+JOIN transactions t
+  ON t.customer_id = c.customer_id
+WHERE c.customer_id = 100;
+```
+
+Display the plan:
+
+```sql
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    NULL,
+    NULL,
+    'ALLSTATS LAST +PREDICATE'
+  )
+);
+```
+
+Identify it:
+
+```text
+Operation
+------------------------------
+NESTED LOOPS
+TABLE ACCESS BY INDEX ROWID
+INDEX UNIQUE SCAN
+TABLE ACCESS BY INDEX ROWID
+INDEX RANGE SCAN
+```
+
+Typical shape:
+
+```text
+1 parent customer row
+  -> repeated index probe into transactions
+```
+
+Good when:
+
+* outer row source is small
+* inner table has a useful index
+* query is selective
+* first rows should return quickly
+
+Risk:
+
+```text
+Nested loops can become expensive when the outer row source is much larger than expected.
+```
+
+---
+
+## Trainer Delivery
+
+“Nested loops means Oracle starts with a small row source and repeatedly probes another object.
+
+In this demo, we first find one customer, then use the customer id to find that customer’s transactions.”
+
+Code explanation:
+
+* `LEADING(c)` asks Oracle to start with `customers_demo`.
+* `USE_NL(t)` asks for nested loops into `transactions`.
+* `INDEX(t idx_txn_customer)` gives Oracle an efficient way to probe the transaction table.
+* `WHERE c.customer_id = 100` keeps the outer row source small.
+
+Ask trainees:
+
+* “When does nested loops become dangerous?”
+
+Expected answer:
+
+* “When the outer row source is large or badly underestimated, causing many repeated probes.”
+
+---
+
+# Slide 32 — HASH JOIN
+
+## Slide Content
+
+Meaning:
+
+```text
+Oracle builds an in-memory hash table from one row source, then scans/probes the other row source.
+```
+
+Generate it with a large-volume join:
+
+```sql
+SELECT /*+ GATHER_PLAN_STATISTICS
+           USE_HASH(t)
+           FULL(t)
+           FULL(c) */
+       COUNT(*)
+FROM customers_demo c
+JOIN transactions t
+  ON t.customer_id = c.customer_id;
+```
+
+Display the plan:
+
+```sql
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    NULL,
+    NULL,
+    'ALLSTATS LAST +PREDICATE'
+  )
+);
+```
+
+Identify it:
+
+```text
+Operation
+------------------
+HASH JOIN
+TABLE ACCESS FULL
+TABLE ACCESS FULL
+```
+
+Good when:
+
+* joining larger row sets
+* no highly selective parent filter exists
+* full scans are cheaper than repeated index probes
+* enough memory exists for the hash work area
+
+Watch for:
+
+```text
+Temp spills if the hash join is too large for memory.
+```
+
+---
+
+## Trainer Delivery
+
+“Nested loops and hash joins are not good-or-bad labels.
+
+They are strategies.
+
+Nested loops usually fit small selective lookups.
+Hash joins usually fit larger set-based joins.”
+
+Code explanation:
+
+* `USE_HASH(t)` asks Oracle to use a hash join.
+* `FULL(t)` and `FULL(c)` make the demo show large set processing.
+* `COUNT(*)` avoids printing 300,000 joined rows.
+
+Ask trainees:
+
+* “Why might a hash join be better than nested loops for this query?”
+
+Expected answer:
+
+* “The join touches a large number of rows, so scanning and hashing can be cheaper than many repeated index probes.”
+
+---
+
+# Slide 33 — SORT ORDER BY
+
+## Slide Content
+
+Meaning:
+
+```text
+Oracle sorts rows to satisfy an ORDER BY.
+```
+
+Generate the estimated plan without printing all sorted rows:
+
+```sql
+EXPLAIN PLAN FOR
+SELECT transaction_id,
+       transaction_date,
+       amount
+FROM transactions
+ORDER BY amount DESC;
+
+SELECT *
+FROM TABLE(DBMS_XPLAN.DISPLAY);
+```
+
+Identify it:
+
+```text
+Operation
+--------------
+SORT ORDER BY
+TABLE ACCESS FULL
+```
+
+Runtime version with limited output:
+
+```sql
+SELECT /*+ GATHER_PLAN_STATISTICS */
+       transaction_id,
+       transaction_date,
+       amount
+FROM transactions
+ORDER BY amount DESC
+FETCH FIRST 20 ROWS ONLY;
+```
+
+Then:
+
+```sql
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    NULL,
+    NULL,
+    'ALLSTATS LAST +PREDICATE'
+  )
+);
+```
+
+Possible operation:
+
+```text
+SORT ORDER BY
+```
+
+or:
+
+```text
+SORT ORDER BY STOPKEY
+```
+
+Why sorting appears:
+
+* no suitable index provides the required order
+* query requests `ORDER BY`
+* grouping, distinct, analytic functions, or merge joins may also require sort work
+
+Tuning thought:
+
+```text
+For frequent ordered lookups, an index matching the filter and order may reduce sorting.
+```
+
+---
+
+## Trainer Delivery
+
+“This slide shows plan operations caused by ordering.
+
+If Oracle cannot get rows in the requested order from an index or previous operation, it must sort them.”
+
+Code explanation:
+
+* The first example uses `EXPLAIN PLAN` so we can see the sort shape without printing every row.
+* The runtime example uses `FETCH FIRST 20 ROWS ONLY` to keep result output small.
+* Oracle may show `SORT ORDER BY STOPKEY` because it only needs the first 20 sorted rows.
+
+Ask trainees:
+
+* “Why does sorting become expensive on large result sets?”
+
+Expected answer:
+
+* “Oracle may need CPU, memory, and possibly temporary tablespace to order the rows.”
+
+---
+
+# Slide 34 — Operation Identification Checklist
+
+## Slide Content
+
+| Operation             | How To Generate                                      | How To Identify                           |
+| --------------------- | ---------------------------------------------------- | ----------------------------------------- |
+| TABLE ACCESS FULL     | scan many rows or use `FULL(table_alias)`            | `Operation = TABLE ACCESS FULL`           |
+| INDEX RANGE SCAN      | filter non-unique indexed column                     | `Operation = INDEX RANGE SCAN`            |
+| INDEX UNIQUE SCAN     | filter primary key or unique key                     | `Operation = INDEX UNIQUE SCAN`           |
+| TABLE ACCESS BY ROWID | select columns not fully covered by index            | `TABLE ACCESS BY INDEX ROWID`, sometimes `BATCHED` |
+| NESTED LOOPS          | selective outer rows plus indexed inner lookup       | `Operation = NESTED LOOPS`                |
+| HASH JOIN             | large join, usually scanning both row sources        | `Operation = HASH JOIN`                   |
+| SORT ORDER BY         | query requires order not already supplied by an index | `Operation = SORT ORDER BY` or `STOPKEY` |
+
+---
+
+## Trainer Delivery
+
+“The operation name tells us what Oracle did.
+
+The row counts and buffers tell us whether that choice was efficient.”
+
+---
+
+# Slide 35 — Predicate Information
 
 ## Slide Content
 
@@ -1493,7 +2268,7 @@ filter("STATUS"='FAILED')
 
 # SECTION 4 — OPTIMIZER MISMATCH & BAD DECISIONS (11:30 – 11:45)
 
-# Slide 28 — E-Rows vs A-Rows
+# Slide 36 — E-Rows vs A-Rows
 
 ## Slide Content
 
@@ -1745,7 +2520,7 @@ It tells us whether the optimizer’s assumptions match reality.”
 
 ---
 
-# Slide 29 — Cost Is NOT Runtime
+# Slide 37 — Cost Is NOT Runtime
 
 ## Slide Content
 
@@ -1778,7 +2553,7 @@ Always connect plans with business workload.”
 
 ---
 
-# Slide 30 — Runtime Evidence Matters
+# Slide 38 — Runtime Evidence Matters
 
 ## Slide Content
 
@@ -1801,7 +2576,7 @@ not estimated diagrams.”
 
 # SECTION 5 — LAB: DBA PLAN ANALYSIS (11:45 – 11:55)
 
-# Slide 31 — Lab Objective
+# Slide 39 — Lab Objective
 
 ## Slide Content
 
@@ -1864,11 +2639,37 @@ WHERE status='FAILED';
 * “Did Oracle choose appropriate access path?”
 * “Would adding index automatically solve everything?”
 
+Expected answers:
+
+* `account_id = 5001` should usually be more selective than `status='SUCCESS'`.
+* `status='SUCCESS'` usually reads many rows and may justify a full scan.
+* The access path must be judged using `A-Rows`, `E-Rows`, buffers, and predicates.
+* “No. An index helps only when it matches the workload and selectivity.”
+
+---
+
+## Trainer Delivery
+
+“This lab is not about guessing the best plan.
+
+Each group should run the SQL, display the runtime plan, and fill the observation table from evidence.
+
+For each query, identify the access path first, then compare estimated rows with actual rows.
+
+The goal is to explain why Oracle chose the plan and whether the runtime evidence supports that choice.”
+
+Code explanation:
+
+* Query A tests an indexed, selective account lookup.
+* Query B tests a common status value that may read a large percentage of the table.
+* Query C tests a less common status value and should be compared against Query B.
+* The observation table forces trainees to connect the plan operation with actual work.
+
 ---
 
 # SECTION 6 — SUMMARY & TRANSITION (11:55 – 12:00)
 
-# Slide 32 — Final DBA Message
+# Slide 40 — Final DBA Message
 
 ## Slide Content
 
@@ -1888,7 +2689,7 @@ Always validate runtime behavior.”
 
 ---
 
-# Slide 33 — Enterprise DBA Workflow
+# Slide 41 — Enterprise DBA Workflow
 
 ## Slide Content
 
