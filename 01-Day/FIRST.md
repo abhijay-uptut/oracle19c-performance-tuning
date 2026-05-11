@@ -2054,7 +2054,81 @@ A-Rows = 100000
 
 # Live Demo — E-Rows vs A-Rows With Controlled Stats
 
-## Step 1 — Ensure Skew Exists
+## Demo Slide Content
+
+# Same Data, Different Optimizer Knowledge
+
+We will run the same query twice:
+
+| Run | Statistics Available | What Oracle Knows |
+| --- | -------------------- | ----------------- |
+| 1 | Basic column stats only | `STATUS` has 2 values |
+| 2 | Column stats with histogram | `FAILED` is rare and `SUCCESS` is common |
+
+Goal:
+
+```text
+Compare E-Rows with A-Rows
+and prove how missing distribution statistics can mislead the optimizer.
+```
+
+---
+
+## Demo Story For Trainer
+
+“In this demo, the table data will not change between the two test queries.
+
+Only Oracle's statistics will change.
+
+That is important because if the plan estimate improves, the reason is not better data or a different SQL statement.
+
+The reason is better optimizer knowledge.”
+
+---
+
+## Histogram Explanation Before The Demo
+
+A normal column statistic can tell Oracle:
+
+```text
+STATUS has 2 distinct values
+```
+
+But it may not tell Oracle the distribution:
+
+```text
+SUCCESS = 95%
+FAILED  = 5%
+```
+
+Without a histogram, Oracle may use a simple assumption:
+
+```text
+2 values means each value is about 50%
+```
+
+That assumption is wrong for skewed data.
+
+A histogram stores value distribution information for a column. For this demo, the histogram helps Oracle understand that:
+
+```text
+FAILED is rare
+SUCCESS is common
+```
+
+Trainer explanation:
+
+“Think of a histogram as a frequency map for a column.
+
+It does not change the rows in the table.
+
+It changes what the optimizer knows about those rows.
+
+That knowledge directly affects E-Rows, which then affects cost and access path decisions.”
+
+---
+
+## Step 1 — Create Controlled Skew
 
 ```sql id="nfdqkq"
 UPDATE transactions
@@ -2067,9 +2141,78 @@ SET status =
 COMMIT;
 ```
 
+### Why We Do This
+
+This makes the demo predictable:
+
+* every 20th transaction becomes `FAILED`
+* all other transactions become `SUCCESS`
+* `FAILED` becomes about 5% of the table
+* `SUCCESS` becomes about 95% of the table
+
+For a 300,000-row table, the expected distribution is:
+
+| Status | Expected Rows | Meaning |
+| ------ | ------------- | ------- |
+| `FAILED` | about 15,000 | rare value |
+| `SUCCESS` | about 285,000 | common value |
+
+### Expected Result
+
+```text
+300,000 rows updated.
+Commit complete.
+```
+
+The exact row count depends on the size of the `TRANSACTIONS` table.
+
+### Trainer Delivery
+
+“We are intentionally creating skew.
+
+Skew means values are not evenly distributed.
+
+This is the kind of column where a basic distinct-value statistic can be misleading.”
+
 ---
 
-# Step 2 — Ensure Status Index Exists
+## Step 2 — Verify The Skew
+
+```sql
+SELECT status,
+       COUNT(*) AS row_count,
+       ROUND(COUNT(*) * 100 / SUM(COUNT(*)) OVER (), 2) AS pct_of_table
+FROM transactions
+GROUP BY status
+ORDER BY status;
+```
+
+### Why We Do This
+
+Before discussing optimizer estimates, show the real data distribution.
+
+This gives the room a known truth:
+
+```text
+Actual FAILED rows are about 5% of the table.
+```
+
+### Expected Result
+
+For 300,000 rows:
+
+| Status | Row Count | Percent |
+| ------ | --------- | ------- |
+| `FAILED` | about 15,000 | about 5% |
+| `SUCCESS` | about 285,000 | about 95% |
+
+### Meaning
+
+This query shows the real world. Later, `A-Rows` should line up with this reality, while `E-Rows` may or may not.
+
+---
+
+## Step 3 — Ensure Status Index Exists
 
 ```sql
 DECLARE
@@ -2088,13 +2231,43 @@ END;
 /
 ```
 
-Trainer note:
+### Why We Do This
 
-Use `COUNT(*)` for this demo because the status index can satisfy the query cleanly. For `SELECT *`, Oracle may prefer a full scan because table lookups by ROWID can become expensive.
+The later demo query uses `COUNT(*)` because the status index can satisfy that query cleanly. For `SELECT *`, Oracle may prefer a full scan because table lookups by ROWID can become expensive.
+
+The index also gives Oracle an efficient possible access path for the rare value:
+
+```text
+INDEX RANGE SCAN on STATUS
+```
+
+### Expected Result
+
+If the index does not exist:
+
+```text
+PL/SQL procedure successfully completed.
+```
+
+and Oracle creates:
+
+```text
+IDX_TXN_STATUS
+```
+
+If the index already exists, the block completes without changing it.
+
+### Trainer Delivery
+
+“The index is not the main lesson here.
+
+The main lesson is whether Oracle correctly estimates how many rows the predicate will return.
+
+A good index can still be used badly if the optimizer has poor cardinality estimates.”
 
 ---
 
-# Step 3 — Gather Stats WITHOUT Histogram
+## Step 4 — Gather Stats WITHOUT Histogram
 
 ```sql
 BEGIN
@@ -2108,9 +2281,47 @@ END;
 /
 ```
 
+### Why We Do This
+
+`SIZE 1 status` tells Oracle not to create a histogram on `STATUS`.
+
+Oracle will still know basic column facts such as:
+
+* number of rows in the table
+* number of distinct values in `STATUS`
+* basic density
+
+But it will not store the frequency distribution of `FAILED` versus `SUCCESS`.
+
+### Expected Result
+
+```text
+PL/SQL procedure successfully completed.
+```
+
+### Meaning
+
+After this step, Oracle should know:
+
+```text
+STATUS has 2 values
+```
+
+But it may not know:
+
+```text
+FAILED appears only about 5% of the time
+```
+
+### Trainer Delivery
+
+“This is the controlled weak-statistics version of the demo.
+
+We are deliberately removing the histogram so Oracle has less information about the skew.”
+
 ---
 
-# Step 4 — Confirm No Histogram
+## Step 5 — Confirm No Histogram
 
 ```sql
 SELECT column_name,
@@ -2122,15 +2333,33 @@ WHERE table_name = 'TRANSACTIONS'
 AND column_name = 'STATUS';
 ```
 
-Expected:
+### Expected Result
 
 ```text
-HISTOGRAM = NONE
+COLUMN_NAME  NUM_DISTINCT  HISTOGRAM  NUM_BUCKETS
+-----------  ------------  ---------  -----------
+STATUS       2             NONE       1
 ```
+
+The exact formatting depends on the SQL client.
+
+### Meaning
+
+`NUM_DISTINCT = 2` means Oracle knows there are two status values.
+
+`HISTOGRAM = NONE` means Oracle does not have value-frequency detail for the column.
+
+### Trainer Delivery
+
+“This is the key setup.
+
+Oracle knows there are two values, but not that one value is very common and the other is rare.
+
+So for `STATUS='FAILED'`, it may estimate roughly half the table.”
 
 ---
 
-# Step 5 — Run Rare-Value Query With Runtime Stats
+## Step 6 — Run Rare-Value Query With Runtime Stats
 
 ```sql
 SET AUTOTRACE OFF
@@ -2156,16 +2385,65 @@ FROM TABLE(
 );
 ```
 
-Expected teaching point:
+### Why We Do This
+
+`statistics_level = ALL` allows Oracle to collect runtime row-source statistics for the cursor.
+
+`DBMS_XPLAN.DISPLAY_CURSOR` with `ALLSTATS LAST` then shows both:
+
+| Metric | Meaning |
+| ------ | ------- |
+| `E-Rows` | rows Oracle expected |
+| `A-Rows` | rows Oracle actually processed |
+
+Use the `no_hist_failed` comment so this execution has a clear cursor label.
+
+### What To Look At
+
+In the plan output, focus on the row source that accesses `TRANSACTIONS` or `IDX_TXN_STATUS`.
+
+Do not compare only the top aggregate line. Since the query is `COUNT(*)`, the final aggregate returns one row. The useful comparison is on the scan/access operation underneath it.
+
+### Expected Result With 300,000 Rows
 
 ```text
-Oracle may estimate roughly half the table because it only knows there are 2 values.
-Actual rows are much lower.
+Predicate: STATUS='FAILED'
+E-Rows:    may be close to 150,000
+A-Rows:    should be close to 15,000
 ```
+
+Oracle may use an index range scan, full scan, or another valid access path depending on environment, but the teaching point is the estimate mismatch.
+
+### Meaning
+
+Without a histogram, Oracle may reason like this:
+
+```text
+There are 2 status values.
+Assume each value returns about 50% of the table.
+300,000 / 2 = 150,000 estimated rows.
+```
+
+Reality is:
+
+```text
+FAILED is about 5%.
+300,000 * 5% = 15,000 actual rows.
+```
+
+### Trainer Delivery
+
+“Now we have the first mismatch.
+
+The data says `FAILED` is rare.
+
+But the optimizer estimate may treat it like an even split because it does not have a histogram.
+
+This is exactly why `E-Rows` and `A-Rows` must be compared during plan analysis.”
 
 ---
 
-# Step 6 — Gather Stats WITH Histogram
+## Step 7 — Gather Stats WITH Histogram
 
 ```sql
 BEGIN
@@ -2179,9 +2457,37 @@ END;
 /
 ```
 
+### Why We Do This
+
+`SIZE 254 status` allows Oracle to create a histogram for the `STATUS` column.
+
+Because this column has only two values, Oracle can store frequency information for both values.
+
+### Expected Result
+
+```text
+PL/SQL procedure successfully completed.
+```
+
+### Meaning
+
+The table data is unchanged.
+
+Only optimizer statistics are improved.
+
+### Trainer Delivery
+
+“This is the important controlled change.
+
+We are not updating the table.
+
+We are not rewriting the SQL.
+
+We are only giving Oracle better statistics about the existing data distribution.”
+
 ---
 
-# Step 7 — Confirm Histogram Exists
+## Step 8 — Confirm Histogram Exists
 
 ```sql
 SELECT column_name,
@@ -2193,15 +2499,33 @@ WHERE table_name = 'TRANSACTIONS'
 AND column_name = 'STATUS';
 ```
 
-Expected:
+### Expected Result
 
 ```text
-HISTOGRAM = FREQUENCY
+COLUMN_NAME  NUM_DISTINCT  HISTOGRAM   NUM_BUCKETS
+-----------  ------------  ----------  -----------
+STATUS       2             FREQUENCY   2
 ```
+
+Some Oracle versions or settings may show a different histogram type, but the important point is that `HISTOGRAM` is no longer `NONE`.
+
+### Meaning
+
+Oracle now has distribution information for `STATUS`.
+
+It can estimate `FAILED` and `SUCCESS` differently instead of treating them as equal.
+
+### Trainer Delivery
+
+“This confirms the optimizer now has more than a distinct-value count.
+
+It has distribution knowledge.
+
+That is what lets it understand skew.”
 
 ---
 
-# Step 8 — Rerun Rare-Value Query
+## Step 9 — Rerun Rare-Value Query
 
 Use a different SQL comment so Oracle creates a fresh cursor for easy comparison.
 
@@ -2224,7 +2548,63 @@ FROM TABLE(
 );
 ```
 
-Now compare:
+### Why We Do This
+
+The SQL text uses a new comment:
+
+```sql
+/* hist_failed */
+```
+
+That makes it easy to get a fresh cursor and compare it with the earlier `no_hist_failed` execution.
+
+### Expected Result With 300,000 Rows
+
+```text
+Predicate: STATUS='FAILED'
+E-Rows:    should be close to 15,000
+A-Rows:    should be close to 15,000
+```
+
+### Meaning
+
+After the histogram, Oracle can reason closer to reality:
+
+```text
+FAILED is a rare value.
+Estimate about 5% of the table.
+```
+
+The key improvement is not that `A-Rows` changed. `A-Rows` should be roughly the same because the data did not change.
+
+The key improvement is that `E-Rows` moved closer to `A-Rows`.
+
+### Trainer Delivery
+
+“This is the moment to pause.
+
+Same table.
+Same predicate.
+Same data.
+
+But the estimate is now more accurate because Oracle has better statistics.”
+
+---
+
+## Step 10 — Compare Before And After
+
+Fill this in from the two `DBMS_XPLAN.DISPLAY_CURSOR` outputs:
+
+| Metric | Without Histogram | With Histogram | Meaning |
+| ------ | ----------------- | -------------- | ------- |
+| Predicate | `STATUS='FAILED'` | `STATUS='FAILED'` | SQL logic is the same |
+| E-Rows | may be about 150,000 | should be about 15,000 | optimizer estimate improved |
+| A-Rows | about 15,000 | about 15,000 | actual data did not change |
+| Access path | environment dependent | environment dependent | plan may or may not change |
+| Buffers | compare from output | compare from output | shows work done |
+| Predicate info | access or filter | access or filter | shows how Oracle applied the condition |
+
+### Compare These Items
 
 * E-Rows before histogram
 * E-Rows after histogram
@@ -2233,7 +2613,7 @@ Now compare:
 * buffers
 * predicate information
 
-Expected result with 300,000 rows:
+### Expected Result With 300,000 Rows
 
 ```text
 Without histogram: E-Rows may be close to 150,000
@@ -2247,18 +2627,48 @@ Trainer note:
 
 Do not promise that the plan shape must change. The reliable teaching point is the estimate correction. If Oracle also changes access path or cost significantly, discuss why that happened.
 
+### Trainer Delivery
+
+“A plan change is possible, but it is not the promise of the demo.
+
+The promise is estimate correction.
+
+Once estimates are better, Oracle has a better chance of choosing the correct access path, join method, and join order in more complex SQL.”
+
 ---
 
-# Ask The Room
+## Ask The Room
 
 * “Did optimizer estimate correctly?”
 * “What changed after the histogram?”
 * “Did the data change, or did Oracle knowledge change?”
 * “Would the same index be equally useful for SUCCESS?”
 
+Expected answers:
+
+* Before the histogram, the estimate may be wrong because Oracle lacks distribution detail.
+* After the histogram, the estimate should be closer to the actual failed-row count.
+* The data did not change; only optimizer statistics changed.
+* The same index may be useful for `FAILED`, but much less useful for `SUCCESS` because `SUCCESS` returns most of the table.
+
 ---
 
-## Trainer Delivery
+## Final Observation
+
+For skewed columns, basic statistics can be incomplete.
+
+`NUM_DISTINCT` tells Oracle how many values exist, but not whether those values are evenly distributed.
+
+A histogram helps Oracle estimate predicates on skewed values more accurately.
+
+The practical tuning lesson:
+
+```text
+Bad E-Rows can lead to bad decisions.
+Good E-Rows give Oracle a better chance to choose the right plan.
+```
+
+## Closing Trainer Delivery
 
 “This is where execution plan analysis becomes real.
 
@@ -2470,22 +2880,3 @@ Then Tune
 ## Trainer Delivery
 
 “This is the workflow used in real production troubleshooting.”
-
----
-
-# TRANSITION TO SLOT 3
-
-# Next Slot
-
-## Indexing Strategies for Enterprise Banking Workloads
-
-We will learn:
-
-* B-tree indexes
-* composite indexes
-* selective indexing
-* covering indexes
-* index overhead
-* index misuse
-* invisible indexes
-* why some indexes hurt performance
