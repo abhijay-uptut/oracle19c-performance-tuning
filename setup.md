@@ -177,3 +177,62 @@ CON_NAME
 ------------------------------
 PDB1
 ```
+
+
+You’re using **SQL Developer on Windows**, but Oracle DB is inside **Linux VM**.
+
+So in SQL Developer:
+
+```text
+Hostname = localhost
+```
+
+means **Windows localhost**, not Linux VM localhost.
+
+That’s why it says:
+
+```text
+No listener at host localhost port 1521
+```
+
+### Fix
+
+In Linux VM terminal, run:
+
+```bash
+hostname -I
+```
+
+or:
+
+```bash
+ip addr show ens33
+```
+
+Find IP like:
+
+```text
+192.168.1.xx
+```
+
+Then in SQL Developer use:
+
+```text
+Username: abhijay
+Password: abhijay123
+Hostname: <Linux VM IP>
+Port: 1521
+Service name: pdb1.localdomain
+```
+
+Example:
+
+```text
+Hostname: 192.168.1.35
+Port: 1521
+Service name: pdb1.localdomain
+```
+
+Keep **Service name** selected, not SID.
+
+Also make sure VM network is **Bridged** or **NAT with port forwarding**. Since PuTTY works, use the same VM IP you used in PuTTY.
