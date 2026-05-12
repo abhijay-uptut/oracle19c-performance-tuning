@@ -1,0 +1,39 @@
+        <html lang="en"><head><title>Bank AWR Training Index</title>
+        <style type="text/css">
+body.awr {font: 10pt Arial,Helvetica,Geneva,sans-serif;color:black;background:white;margin:16px;}
+pre.awr {font:8pt Courier;color:black;background:white;white-space:pre-wrap;}
+h1.awr {font:bold 20pt Arial,Helvetica,Geneva,sans-serif;color:#336699;background-color:white;border-bottom:1px solid #cccc99;margin:0 0 8px 0;padding:0;}
+h2.awr {font:bold 18pt Arial,Helvetica,Geneva,sans-serif;color:#336699;background-color:white;margin:18px 0 4px 0;}
+h3.awr {font:bold 15pt Arial,Helvetica,Geneva,sans-serif;color:#336699;background-color:white;margin:14px 0 4px 0;}
+h4.awr {font:bold 11pt Arial,Helvetica,Geneva,sans-serif;color:#333;margin:10px 0 3px 0;}
+li.awr {font: 8pt Arial,Helvetica,Geneva,sans-serif;color:black;background:white;margin-bottom:2px;}
+th.awrnobg {font:bold 8pt Arial,Helvetica,Geneva,sans-serif;color:black;background:white;padding:3px 6px;}
+th.awrbg {font:bold 8pt Arial,Helvetica,Geneva,sans-serif;color:white;background:#0066CC;padding:3px 6px;text-align:left;}
+td.awrnc {font:8pt Arial,Helvetica,Geneva,sans-serif;color:black;background:white;vertical-align:top;padding:3px 6px;}
+td.awrc {font:8pt Arial,Helvetica,Geneva,sans-serif;color:black;background:#FFFFCC;vertical-align:top;padding:3px 6px;}
+td.num {text-align:right;}
+table.tdiff {border-collapse:collapse;margin:4px 0 10px 0;}
+table.tdiff td, table.tdiff th {border:1px solid #d0d0b8;}
+a.awr {font:bold 8pt Arial,Helvetica,sans-serif;color:#663300;vertical-align:top;}
+.note {max-width:980px;border-left:4px solid #0066CC;background:#f5f9ff;padding:8px 10px;margin:8px 0 12px 0;font-size:9pt;line-height:1.35;}
+.warning {max-width:980px;border-left:4px solid #b45309;background:#fff7ed;padding:8px 10px;margin:8px 0 12px 0;font-size:9pt;line-height:1.35;}
+.finding {max-width:980px;border-left:4px solid #7c3aed;background:#f7f3ff;padding:8px 10px;margin:8px 0 12px 0;font-size:9pt;line-height:1.35;}
+.small {font-size:8pt;color:#444;}
+.toc li {margin-bottom:4px;}
+</style></head><body class="awr">
+        <h1 class="awr">Bank AWR Training Index</h1>
+        <div class="note">Start with the study guide, then open each mock AWR report. Each report is built around a realistic production symptom a bank DBA may investigate.</div>
+        <h2 class="awr">Files</h2>
+        <ul class="toc">
+        <li class="awr"><a class="awr" href="awr-study-guide-bank-dba.md">AWR Learning Guide for a Banking DBA</a></li>
+        <li class="awr"><a class="awr" href="awrrpt-sample.html">Original basic sample AWR report</a></li>
+        <li class='awr'><a class='awr' href='awrrpt-bank-00-baseline.html'>Healthy OLTP Baseline</a> - Normal weekday payment, account inquiry, card authorization, and digital banking traffic. Use this report to learn what a balanced banking OLTP AWR looks like before diagnosing a problem.</li>
+<li class='awr'><a class='awr' href='awrrpt-bank-01-cpu-sql.html'>CPU Bound Due to Expensive SQL</a> - Month-end statement preview caused one SQL to repeatedly scan and aggregate account history. Users report slow internet banking and CPU saturation.</li>
+<li class='awr'><a class='awr' href='awrrpt-bank-02-io-full-scan.html'>User I/O Bound Full Table Scan</a> - A compliance AML extract ran during business hours and scanned payments history. Online payment screens slowed because storage latency and cache churn increased.</li>
+<li class='awr'><a class='awr' href='awrrpt-bank-03-locking.html'>Application Locking and Blocking Sessions</a> - End-of-day payment posting created a hot row in settlement control. Many sessions waited on enq: TX - row lock contention.</li>
+<li class='awr'><a class='awr' href='awrrpt-bank-04-hard-parse.html'>Hard Parse and Library Cache Pressure</a> - A fraud rules deployment generated literal SQL instead of bind variables. CPU rose, library cache mutex waits appeared, and SQL version counts exploded.</li>
+<li class='awr'><a class='awr' href='awrrpt-bank-05-commit-redo.html'>Commit Latency and Redo Pressure</a> - A real-time notification process committed every row during a card settlement import. Customers saw delays because log file sync dominated response time.</li>
+        </ul>
+        <h2 class="awr">Practice Goal</h2>
+        <div class="finding">For every report, identify the top DB Time consumer, top SQL ID, top object, ADDM finding, and whether SQL Tuning Advisor is the right tool.</div>
+        </body></html>

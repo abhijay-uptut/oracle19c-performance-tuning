@@ -1,0 +1,211 @@
+        <html lang="en"><head><title>AWR Report for DB: BANKPRD, Scenario: Healthy OLTP Baseline</title>
+        <style type="text/css">
+body.awr {font: 10pt Arial,Helvetica,Geneva,sans-serif;color:black;background:white;margin:16px;}
+pre.awr {font:8pt Courier;color:black;background:white;white-space:pre-wrap;}
+h1.awr {font:bold 20pt Arial,Helvetica,Geneva,sans-serif;color:#336699;background-color:white;border-bottom:1px solid #cccc99;margin:0 0 8px 0;padding:0;}
+h2.awr {font:bold 18pt Arial,Helvetica,Geneva,sans-serif;color:#336699;background-color:white;margin:18px 0 4px 0;}
+h3.awr {font:bold 15pt Arial,Helvetica,Geneva,sans-serif;color:#336699;background-color:white;margin:14px 0 4px 0;}
+h4.awr {font:bold 11pt Arial,Helvetica,Geneva,sans-serif;color:#333;margin:10px 0 3px 0;}
+li.awr {font: 8pt Arial,Helvetica,Geneva,sans-serif;color:black;background:white;margin-bottom:2px;}
+th.awrnobg {font:bold 8pt Arial,Helvetica,Geneva,sans-serif;color:black;background:white;padding:3px 6px;}
+th.awrbg {font:bold 8pt Arial,Helvetica,Geneva,sans-serif;color:white;background:#0066CC;padding:3px 6px;text-align:left;}
+td.awrnc {font:8pt Arial,Helvetica,Geneva,sans-serif;color:black;background:white;vertical-align:top;padding:3px 6px;}
+td.awrc {font:8pt Arial,Helvetica,Geneva,sans-serif;color:black;background:#FFFFCC;vertical-align:top;padding:3px 6px;}
+td.num {text-align:right;}
+table.tdiff {border-collapse:collapse;margin:4px 0 10px 0;}
+table.tdiff td, table.tdiff th {border:1px solid #d0d0b8;}
+a.awr {font:bold 8pt Arial,Helvetica,sans-serif;color:#663300;vertical-align:top;}
+.note {max-width:980px;border-left:4px solid #0066CC;background:#f5f9ff;padding:8px 10px;margin:8px 0 12px 0;font-size:9pt;line-height:1.35;}
+.warning {max-width:980px;border-left:4px solid #b45309;background:#fff7ed;padding:8px 10px;margin:8px 0 12px 0;font-size:9pt;line-height:1.35;}
+.finding {max-width:980px;border-left:4px solid #7c3aed;background:#f7f3ff;padding:8px 10px;margin:8px 0 12px 0;font-size:9pt;line-height:1.35;}
+.small {font-size:8pt;color:#444;}
+.toc li {margin-bottom:4px;}
+</style></head><body class="awr">
+        <h1 class="awr">WORKLOAD REPOSITORY PDB report - BANKPRD - Healthy OLTP Baseline</h1>
+        <div class="warning"><b>Training report:</b> Mock AWR data for learning. The values are designed to resemble real production symptoms, not to represent a real bank or customer.</div>
+        <table border='0' width='980' class='tdiff'><tr><th class='awrbg'>DB Name</th><th class='awrbg'>DB Id</th><th class='awrbg'>Unique Name</th><th class='awrbg'>Role</th><th class='awrbg'>Edition</th><th class='awrbg'>Release</th><th class='awrbg'>RAC</th><th class='awrbg'>CDB</th></tr>
+<tr><td class='awrc'>BANKPRD</td><td class='awrc num'>918273645</td><td class='awrc'>bankprd</td><td class='awrc'>PRIMARY</td><td class='awrc'>EE</td><td class='awrc num'>19.20.0.0.0</td><td class='awrc'>YES</td><td class='awrc'>YES</td></tr>
+</table>
+        <table border='0' width='760' class='tdiff'><tr><th class='awrbg'>Instance</th><th class='awrbg'>Inst Num</th><th class='awrbg'>Startup Time</th><th class='awrbg'>User Name</th><th class='awrbg'>System Data Visible</th></tr>
+<tr><td class='awrc'>bankprd1</td><td class='awrc num'>1</td><td class='awrc'>12-May-26 04:15</td><td class='awrc'>SYS</td><td class='awrc'>YES</td></tr>
+</table>
+        <table border='0' width='760' class='tdiff'><tr><th class='awrbg'>Host Name</th><th class='awrbg'>Platform</th><th class='awrbg'>CPUs</th><th class='awrbg'>Cores</th><th class='awrbg'>Sockets</th><th class='awrbg'>Memory (GB)</th></tr>
+<tr><td class='awrc'>bkdb-prd1-rac1</td><td class='awrc'>Linux x86 64-bit</td><td class='awrc num'>48</td><td class='awrc num'>24</td><td class='awrc num'>2</td><td class='awrc num'>384.00</td></tr>
+</table>
+        <table border='0' width='760' class='tdiff'><tr><th class='awrbg'></th><th class='awrbg'>Snap Id</th><th class='awrbg'>Snap Time</th><th class='awrbg'>Sessions</th><th class='awrbg'>Cursors/Session</th></tr>
+<tr><td class='awrc'>Begin Snap</td><td class='awrc num'>4102</td><td class='awrc'>12-May-26 14:00:00</td><td class='awrc num'>1180</td><td class='awrc num'>9.6</td></tr>
+<tr><td class='awrnc'>End Snap</td><td class='awrnc num'>4103</td><td class='awrnc'>12-May-26 15:00:00</td><td class='awrnc num'>1245</td><td class='awrnc num'>10.1</td></tr>
+<tr><td class='awrc'>Elapsed</td><td class='awrc'>&nbsp;</td><td class='awrc'>60 (mins)</td><td class='awrc'>&nbsp;</td><td class='awrc'>&nbsp;</td></tr>
+<tr><td class='awrnc'>DB Time</td><td class='awrnc'>&nbsp;</td><td class='awrnc'>1260 (mins)</td><td class='awrnc'>&nbsp;</td><td class='awrnc'>&nbsp;</td></tr>
+<tr><td class='awrc'>Average Active Sessions</td><td class='awrc'>&nbsp;</td><td class='awrc num'>21.0</td><td class='awrc'>&nbsp;</td><td class='awrc'>&nbsp;</td></tr>
+</table>
+
+<h2 class="awr"><a class="awr" name="top"></a>Main Report</h2>
+<ul class="toc">
+<li class="awr"><a class="awr" href="#summary">Report Summary</a></li>
+<li class="awr"><a class="awr" href="#instance">Instance Efficiency and IO Profile</a></li>
+<li class="awr"><a class="awr" href="#waits">Wait Events Statistics</a></li>
+<li class="awr"><a class="awr" href="#sql">SQL Statistics</a></li>
+<li class="awr"><a class="awr" href="#segments">Segment Statistics</a></li>
+<li class="awr"><a class="awr" href="#ash">Active Session History Summary</a></li>
+<li class="awr"><a class="awr" href="#addm">ADDM Report</a></li>
+<li class="awr"><a class="awr" href="#advisor">SQL Tuning Advisor Practice</a></li>
+</ul>
+
+        <h2 class="awr"><a class="awr" name="summary"></a>Report Summary</h2>
+        <div class="note">Normal weekday payment, account inquiry, card authorization, and digital banking traffic. Use this report to learn what a balanced banking OLTP AWR looks like before diagnosing a problem.</div>
+        <h3 class="awr">Load Profile</h3>
+        <table border='0' width='980' class='tdiff'><tr><th class='awrbg'></th><th class='awrbg'>Per Second</th><th class='awrbg'>Per Transaction</th><th class='awrbg'>Per Exec</th><th class='awrbg'>Per Call</th></tr>
+<tr><td class='awrc'>DB Time(s)</td><td class='awrc num'>21.0</td><td class='awrc num'>0.084</td><td class='awrc num'>0.012</td><td class='awrc num'>0.018</td></tr>
+<tr><td class='awrnc'>DB CPU(s)</td><td class='awrnc num'>15.9</td><td class='awrnc num'>0.064</td><td class='awrnc num'>0.009</td><td class='awrnc num'>0.014</td></tr>
+<tr><td class='awrc'>Redo size (bytes)</td><td class='awrc num'>26,420,000</td><td class='awrc num'>105,680</td><td class='awrc'>&nbsp;</td><td class='awrc'>&nbsp;</td></tr>
+<tr><td class='awrnc'>Logical read (blocks)</td><td class='awrnc num'>1,850,000</td><td class='awrnc num'>7,400</td><td class='awrnc'>&nbsp;</td><td class='awrnc'>&nbsp;</td></tr>
+<tr><td class='awrc'>Physical read (blocks)</td><td class='awrc num'>16,800</td><td class='awrc num'>67</td><td class='awrc'>&nbsp;</td><td class='awrc'>&nbsp;</td></tr>
+<tr><td class='awrnc'>Physical write (blocks)</td><td class='awrnc num'>9,900</td><td class='awrnc num'>40</td><td class='awrnc'>&nbsp;</td><td class='awrnc'>&nbsp;</td></tr>
+<tr><td class='awrc'>User calls</td><td class='awrc num'>1,180</td><td class='awrc num'>4.7</td><td class='awrc'>&nbsp;</td><td class='awrc'>&nbsp;</td></tr>
+<tr><td class='awrnc'>Parses (SQL)</td><td class='awrnc num'>3,900</td><td class='awrnc num'>15.6</td><td class='awrnc'>&nbsp;</td><td class='awrnc'>&nbsp;</td></tr>
+<tr><td class='awrc'>Hard parses (SQL)</td><td class='awrc num'>42</td><td class='awrc num'>0.17</td><td class='awrc'>&nbsp;</td><td class='awrc'>&nbsp;</td></tr>
+<tr><td class='awrnc'>Executes (SQL)</td><td class='awrnc num'>104,000</td><td class='awrnc num'>416</td><td class='awrnc'>&nbsp;</td><td class='awrnc'>&nbsp;</td></tr>
+<tr><td class='awrc'>Transactions</td><td class='awrc num'>250</td><td class='awrc'>&nbsp;</td><td class='awrc'>&nbsp;</td><td class='awrc'>&nbsp;</td></tr>
+</table>
+        <h3 class="awr">How to Read This Scenario</h3>
+        <div class="finding">Healthy does not mean zero waits. In a bank OLTP system, some sequential reads, log file sync, RAC block traffic, and network waits are normal. The question is whether one class consumes DB Time abnormally or whether one SQL ID explains a large share of load.</div>
+        <a class="awr" href="#top">Back to Top</a>
+
+        <h2 class="awr"><a class="awr" name="instance"></a>Instance Efficiency and IO Profile</h2>
+        <h3 class="awr">Instance Efficiency Percentages</h3>
+        <table border='0' width='520' class='tdiff'><tr><th class='awrbg'>Statistic</th><th class='awrbg'>Value</th></tr>
+<tr><td class='awrc'>Buffer Nowait %</td><td class='awrc num'>99.94</td></tr>
+<tr><td class='awrnc'>Buffer Hit %</td><td class='awrnc num'>99.09</td></tr>
+<tr><td class='awrc'>Library Hit %</td><td class='awrc num'>99.62</td></tr>
+<tr><td class='awrnc'>Execute to Parse %</td><td class='awrnc num'>96.25</td></tr>
+<tr><td class='awrc'>Parse CPU to Parse Elapsed %</td><td class='awrc num'>88.90</td></tr>
+<tr><td class='awrnc'>Soft Parse %</td><td class='awrnc num'>98.92</td></tr>
+<tr><td class='awrc'>Latch Hit %</td><td class='awrc num'>99.78</td></tr>
+<tr><td class='awrnc'>Non-Parse CPU %</td><td class='awrnc num'>97.40</td></tr>
+</table>
+        <div class="note">Use these percentages as clues, not as absolute health scores. A high buffer hit ratio can still hide bad SQL with huge logical reads, and a low soft parse percentage points toward cursor sharing or hard parse problems.</div>
+        <h3 class="awr">IO Profile</h3>
+        <table border='0' width='760' class='tdiff'><tr><th class='awrbg'></th><th class='awrbg'>Read+Write Per Second</th><th class='awrbg'>Read Per Second</th><th class='awrbg'>Write Per Second</th></tr>
+<tr><td class='awrc'>Database Requests</td><td class='awrc num'>26,700</td><td class='awrc num'>18,700</td><td class='awrc num'>8,000</td></tr>
+<tr><td class='awrnc'>Database MB</td><td class='awrnc num'>201.6</td><td class='awrnc num'>131.3</td><td class='awrnc num'>70.3</td></tr>
+<tr><td class='awrc'>Redo MB</td><td class='awrc'>&nbsp;</td><td class='awrc'>&nbsp;</td><td class='awrc num'>25.2</td></tr>
+<tr><td class='awrnc'>Avg Read Latency</td><td class='awrnc'>&nbsp;</td><td class='awrnc'>0.70 ms</td><td class='awrnc'>&nbsp;</td></tr>
+</table>
+
+        <h2 class="awr"><a class="awr" name="waits"></a>Wait Events Statistics</h2>
+        <h3 class="awr">Top 10 Foreground Events by Total Wait Time</h3>
+        <table border='0' width='980' class='tdiff'><tr><th class='awrbg'>Event</th><th class='awrbg'>Waits</th><th class='awrbg'>Total Wait Time (sec)</th><th class='awrbg'>Avg Wait</th><th class='awrbg'>% DB time</th><th class='awrbg'>Wait Class</th></tr>
+<tr><td class='awrc'>DB CPU</td><td class='awrc'>&nbsp;</td><td class='awrc num'>57,240</td><td class='awrc'>&nbsp;</td><td class='awrc num'>75.7</td><td class='awrc'>&nbsp;</td></tr>
+<tr><td class='awrnc'>db file sequential read</td><td class='awrnc num'>18,700,000</td><td class='awrnc num'>5,610</td><td class='awrnc'>0.30 ms</td><td class='awrnc num'>7.4</td><td class='awrnc'>User I/O</td></tr>
+<tr><td class='awrc'>log file sync</td><td class='awrc num'>896,000</td><td class='awrc num'>3,852</td><td class='awrc'>4.30 ms</td><td class='awrc num'>5.1</td><td class='awrc'>Commit</td></tr>
+<tr><td class='awrnc'>gc cr block 2-way</td><td class='awrnc num'>2,560,000</td><td class='awrnc num'>2,816</td><td class='awrnc'>1.10 ms</td><td class='awrnc num'>3.7</td><td class='awrnc'>Cluster</td></tr>
+<tr><td class='awrc'>db file scattered read</td><td class='awrc num'>480,000</td><td class='awrc num'>1,440</td><td class='awrc'>3.00 ms</td><td class='awrc num'>1.9</td><td class='awrc'>User I/O</td></tr>
+<tr><td class='awrnc'>SQL*Net more data to client</td><td class='awrnc num'>3,600,000</td><td class='awrnc num'>1,080</td><td class='awrnc'>0.30 ms</td><td class='awrnc num'>1.4</td><td class='awrnc'>Network</td></tr>
+<tr><td class='awrc'>enq: TX - row lock contention</td><td class='awrc num'>6,100</td><td class='awrc num'>915</td><td class='awrc'>150 ms</td><td class='awrc num'>1.2</td><td class='awrc'>Application</td></tr>
+</table>
+        <h3 class="awr">Wait Classes by Total Wait Time</h3>
+        <table border='0' width='980' class='tdiff'><tr><th class='awrbg'>Wait Class</th><th class='awrbg'>Waits</th><th class='awrbg'>Total Wait Time (sec)</th><th class='awrbg'>Avg Wait Time</th><th class='awrbg'>% DB time</th><th class='awrbg'>Avg Active Sessions</th></tr>
+<tr><td class='awrc'>DB CPU</td><td class='awrc'>&nbsp;</td><td class='awrc num'>57,240</td><td class='awrc'>&nbsp;</td><td class='awrc num'>75.7</td><td class='awrc num'>15.9</td></tr>
+<tr><td class='awrnc'>User I/O</td><td class='awrnc num'>19,180,000</td><td class='awrnc num'>7,050</td><td class='awrnc'>0.37 ms</td><td class='awrnc num'>9.3</td><td class='awrnc num'>2.0</td></tr>
+<tr><td class='awrc'>Commit</td><td class='awrc num'>896,000</td><td class='awrc num'>3,852</td><td class='awrc'>4.30 ms</td><td class='awrc num'>5.1</td><td class='awrc num'>1.1</td></tr>
+<tr><td class='awrnc'>Cluster</td><td class='awrnc num'>2,560,000</td><td class='awrnc num'>2,816</td><td class='awrnc'>1.10 ms</td><td class='awrnc num'>3.7</td><td class='awrnc num'>0.8</td></tr>
+<tr><td class='awrc'>Application</td><td class='awrc num'>6,100</td><td class='awrc num'>915</td><td class='awrc'>150 ms</td><td class='awrc num'>1.2</td><td class='awrc num'>0.3</td></tr>
+<tr><td class='awrnc'>Network</td><td class='awrnc num'>3,900,000</td><td class='awrnc num'>1,170</td><td class='awrnc'>0.30 ms</td><td class='awrnc num'>1.5</td><td class='awrnc num'>0.3</td></tr>
+</table>
+        <h3 class="awr">Time Model Statistics</h3>
+        <table border='0' width='760' class='tdiff'><tr><th class='awrbg'>Statistic Name</th><th class='awrbg'>Time (s)</th><th class='awrbg'>% of DB Time</th></tr>
+<tr><td class='awrc'>DB CPU</td><td class='awrc num'>57,240</td><td class='awrc num'>75.7</td></tr>
+<tr><td class='awrnc'>sql execute elapsed time</td><td class='awrnc num'>66,840</td><td class='awrnc num'>88.4</td></tr>
+<tr><td class='awrc'>PL/SQL execution elapsed time</td><td class='awrc num'>9,870</td><td class='awrc num'>13.1</td></tr>
+<tr><td class='awrnc'>parse time elapsed</td><td class='awrnc num'>1,560</td><td class='awrnc num'>2.1</td></tr>
+<tr><td class='awrc'>hard parse elapsed time</td><td class='awrc num'>240</td><td class='awrc num'>0.3</td></tr>
+<tr><td class='awrnc'>connection management call elapsed time</td><td class='awrnc num'>120</td><td class='awrnc num'>0.2</td></tr>
+<tr><td class='awrc'>DB time</td><td class='awrc num'>75,600</td><td class='awrc'>&nbsp;</td></tr>
+</table>
+        <a class="awr" href="#top">Back to Top</a>
+
+        <h2 class="awr"><a class="awr" name="sql"></a>SQL Statistics</h2>
+        <h3 class="awr">SQL ordered by Elapsed Time</h3>
+        <table border='0' width='1200' class='tdiff'><tr><th class='awrbg'>Elapsed Time (s)</th><th class='awrbg'>Executions</th><th class='awrbg'>Elapsed per Exec (s)</th><th class='awrbg'>CPU Time (s)</th><th class='awrbg'>User I/O Time (s)</th><th class='awrbg'>Buffer Gets</th><th class='awrbg'>SQL Id</th><th class='awrbg'>SQL Module</th><th class='awrbg'>PDB Name</th><th class='awrbg'>SQL Text</th></tr>
+<tr><td class='awrc num'>4,320</td><td class='awrc num'>18,200,000</td><td class='awrc num'>0.0002</td><td class='awrc num'>1,200</td><td class='awrc num'>980</td><td class='awrc num'>9,600,000</td><td class='awrc'>8h3kczwq0n2ua</td><td class='awrc'>ACCT_SVC</td><td class='awrc'>BANKPDB</td><td class='awrc'>SELECT current_balance FROM core_accounts WHERE account_no = :B1</td></tr>
+<tr><td class='awrnc num'>3,780</td><td class='awrnc num'>25,600,000</td><td class='awrnc num'>0.0001</td><td class='awrnc num'>2,040</td><td class='awrnc num'>420</td><td class='awrnc num'>14,080,000</td><td class='awrnc'>cz7mrb1f0a21q</td><td class='awrnc'>CARD_AUTH</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>SELECT available_limit FROM card_limits WHERE card_no = :B1 AND status = &#x27;A&#x27;</td></tr>
+<tr><td class='awrc num'>2,760</td><td class='awrc num'>1,920,000</td><td class='awrc num'>0.0014</td><td class='awrc num'>2,210</td><td class='awrc num'>1,300</td><td class='awrc num'>5,300,000</td><td class='awrc'>5w4h9fg0u9sp2</td><td class='awrc'>MOBILE_API</td><td class='awrc'>BANKPDB</td><td class='awrc'>SELECT * FROM payments WHERE customer_id = :B1 ORDER BY payment_ts DESC FETCH FIRST 20 ROWS ONLY</td></tr>
+<tr><td class='awrnc num'>2,240</td><td class='awrnc num'>640,000</td><td class='awrnc num'>0.0035</td><td class='awrnc num'>1,780</td><td class='awrnc num'>220</td><td class='awrnc num'>3,100,000</td><td class='awrnc'>b1x7qpt53mnd8</td><td class='awrnc'>FRAUD_ENGINE</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>BEGIN fraud_pkg.score_txn(:B1,:B2,:B3); END;</td></tr>
+</table>
+        <h3 class="awr">SQL ordered by CPU Time</h3>
+        <table border='0' width='1200' class='tdiff'><tr><th class='awrbg'>CPU Time (s)</th><th class='awrbg'>Executions</th><th class='awrbg'>Elapsed Time (s)</th><th class='awrbg'>Buffer Gets</th><th class='awrbg'>SQL Id</th><th class='awrbg'>SQL Module</th><th class='awrbg'>PDB Name</th><th class='awrbg'>SQL Text</th></tr>
+<tr><td class='awrc num'>2,210</td><td class='awrc num'>1,920,000</td><td class='awrc num'>2,760</td><td class='awrc num'>5,300,000</td><td class='awrc'>5w4h9fg0u9sp2</td><td class='awrc'>MOBILE_API</td><td class='awrc'>BANKPDB</td><td class='awrc'>SELECT * FROM payments WHERE customer_id = :B1 ORDER BY payment_ts DESC FETCH FIRST 20 ROWS ONLY</td></tr>
+<tr><td class='awrnc num'>2,040</td><td class='awrnc num'>25,600,000</td><td class='awrnc num'>3,780</td><td class='awrnc num'>14,080,000</td><td class='awrnc'>cz7mrb1f0a21q</td><td class='awrnc'>CARD_AUTH</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>SELECT available_limit FROM card_limits WHERE card_no = :B1 AND status = &#x27;A&#x27;</td></tr>
+<tr><td class='awrc num'>1,780</td><td class='awrc num'>640,000</td><td class='awrc num'>2,240</td><td class='awrc num'>3,100,000</td><td class='awrc'>b1x7qpt53mnd8</td><td class='awrc'>FRAUD_ENGINE</td><td class='awrc'>BANKPDB</td><td class='awrc'>BEGIN fraud_pkg.score_txn(:B1,:B2,:B3); END;</td></tr>
+<tr><td class='awrnc num'>1,200</td><td class='awrnc num'>18,200,000</td><td class='awrnc num'>4,320</td><td class='awrnc num'>9,600,000</td><td class='awrnc'>8h3kczwq0n2ua</td><td class='awrnc'>ACCT_SVC</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>SELECT current_balance FROM core_accounts WHERE account_no = :B1</td></tr>
+</table>
+        <h3 class="awr">SQL ordered by Gets</h3>
+        <table border='0' width='1200' class='tdiff'><tr><th class='awrbg'>Buffer Gets</th><th class='awrbg'>Executions</th><th class='awrbg'>Elapsed Time (s)</th><th class='awrbg'>CPU Time (s)</th><th class='awrbg'>SQL Id</th><th class='awrbg'>SQL Module</th><th class='awrbg'>PDB Name</th><th class='awrbg'>SQL Text</th></tr>
+<tr><td class='awrc num'>14,080,000</td><td class='awrc num'>25,600,000</td><td class='awrc num'>3,780</td><td class='awrc num'>2,040</td><td class='awrc'>cz7mrb1f0a21q</td><td class='awrc'>CARD_AUTH</td><td class='awrc'>BANKPDB</td><td class='awrc'>SELECT available_limit FROM card_limits WHERE card_no = :B1 AND status = &#x27;A&#x27;</td></tr>
+<tr><td class='awrnc num'>9,600,000</td><td class='awrnc num'>18,200,000</td><td class='awrnc num'>4,320</td><td class='awrnc num'>1,200</td><td class='awrnc'>8h3kczwq0n2ua</td><td class='awrnc'>ACCT_SVC</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>SELECT current_balance FROM core_accounts WHERE account_no = :B1</td></tr>
+<tr><td class='awrc num'>5,300,000</td><td class='awrc num'>1,920,000</td><td class='awrc num'>2,760</td><td class='awrc num'>2,210</td><td class='awrc'>5w4h9fg0u9sp2</td><td class='awrc'>MOBILE_API</td><td class='awrc'>BANKPDB</td><td class='awrc'>SELECT * FROM payments WHERE customer_id = :B1 ORDER BY payment_ts DESC FETCH FIRST 20 ROWS ONLY</td></tr>
+<tr><td class='awrnc num'>3,100,000</td><td class='awrnc num'>640,000</td><td class='awrnc num'>2,240</td><td class='awrnc num'>1,780</td><td class='awrnc'>b1x7qpt53mnd8</td><td class='awrnc'>FRAUD_ENGINE</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>BEGIN fraud_pkg.score_txn(:B1,:B2,:B3); END;</td></tr>
+</table>
+        <h3 class="awr">SQL ordered by User I/O Wait Time</h3>
+        <table border='0' width='1200' class='tdiff'><tr><th class='awrbg'>User I/O Time (s)</th><th class='awrbg'>Executions</th><th class='awrbg'>Elapsed Time (s)</th><th class='awrbg'>CPU Time (s)</th><th class='awrbg'>SQL Id</th><th class='awrbg'>SQL Module</th><th class='awrbg'>PDB Name</th><th class='awrbg'>SQL Text</th></tr>
+<tr><td class='awrc num'>1,300</td><td class='awrc num'>1,920,000</td><td class='awrc num'>2,760</td><td class='awrc num'>2,210</td><td class='awrc'>5w4h9fg0u9sp2</td><td class='awrc'>MOBILE_API</td><td class='awrc'>BANKPDB</td><td class='awrc'>SELECT * FROM payments WHERE customer_id = :B1 ORDER BY payment_ts DESC FETCH FIRST 20 ROWS ONLY</td></tr>
+<tr><td class='awrnc num'>980</td><td class='awrnc num'>18,200,000</td><td class='awrnc num'>4,320</td><td class='awrnc num'>1,200</td><td class='awrnc'>8h3kczwq0n2ua</td><td class='awrnc'>ACCT_SVC</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>SELECT current_balance FROM core_accounts WHERE account_no = :B1</td></tr>
+<tr><td class='awrc num'>420</td><td class='awrc num'>25,600,000</td><td class='awrc num'>3,780</td><td class='awrc num'>2,040</td><td class='awrc'>cz7mrb1f0a21q</td><td class='awrc'>CARD_AUTH</td><td class='awrc'>BANKPDB</td><td class='awrc'>SELECT available_limit FROM card_limits WHERE card_no = :B1 AND status = &#x27;A&#x27;</td></tr>
+<tr><td class='awrnc num'>220</td><td class='awrnc num'>640,000</td><td class='awrnc num'>2,240</td><td class='awrnc num'>1,780</td><td class='awrnc'>b1x7qpt53mnd8</td><td class='awrnc'>FRAUD_ENGINE</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>BEGIN fraud_pkg.score_txn(:B1,:B2,:B3); END;</td></tr>
+</table>
+        <h3 class="awr">SQL ordered by Executions</h3>
+        <table border='0' width='1200' class='tdiff'><tr><th class='awrbg'>Executions</th><th class='awrbg'>Elapsed Time (s)</th><th class='awrbg'>CPU Time (s)</th><th class='awrbg'>User I/O Time (s)</th><th class='awrbg'>SQL Id</th><th class='awrbg'>SQL Module</th><th class='awrbg'>PDB Name</th><th class='awrbg'>SQL Text</th></tr>
+<tr><td class='awrc num'>25,600,000</td><td class='awrc num'>3,780</td><td class='awrc num'>2,040</td><td class='awrc num'>420</td><td class='awrc'>cz7mrb1f0a21q</td><td class='awrc'>CARD_AUTH</td><td class='awrc'>BANKPDB</td><td class='awrc'>SELECT available_limit FROM card_limits WHERE card_no = :B1 AND status = &#x27;A&#x27;</td></tr>
+<tr><td class='awrnc num'>18,200,000</td><td class='awrnc num'>4,320</td><td class='awrnc num'>1,200</td><td class='awrnc num'>980</td><td class='awrnc'>8h3kczwq0n2ua</td><td class='awrnc'>ACCT_SVC</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>SELECT current_balance FROM core_accounts WHERE account_no = :B1</td></tr>
+<tr><td class='awrc num'>1,920,000</td><td class='awrc num'>2,760</td><td class='awrc num'>2,210</td><td class='awrc num'>1,300</td><td class='awrc'>5w4h9fg0u9sp2</td><td class='awrc'>MOBILE_API</td><td class='awrc'>BANKPDB</td><td class='awrc'>SELECT * FROM payments WHERE customer_id = :B1 ORDER BY payment_ts DESC FETCH FIRST 20 ROWS ONLY</td></tr>
+<tr><td class='awrnc num'>640,000</td><td class='awrnc num'>2,240</td><td class='awrnc num'>1,780</td><td class='awrnc num'>220</td><td class='awrnc'>b1x7qpt53mnd8</td><td class='awrnc'>FRAUD_ENGINE</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>BEGIN fraud_pkg.score_txn(:B1,:B2,:B3); END;</td></tr>
+</table>
+        <h3 class="awr">SQL ordered by Parse Calls</h3>
+        <table border='0' width='1200' class='tdiff'><tr><th class='awrbg'>Parse Calls</th><th class='awrbg'>Executions</th><th class='awrbg'>% Total Parses</th><th class='awrbg'>SQL Id</th><th class='awrbg'>SQL Module</th><th class='awrbg'>PDB Name</th><th class='awrbg'>SQL Text</th></tr>
+<tr><td class='awrc num'>76,800</td><td class='awrc num'>25,600,000</td><td class='awrc num'>0.30</td><td class='awrc'>cz7mrb1f0a21q</td><td class='awrc'>CARD_AUTH</td><td class='awrc'>BANKPDB</td><td class='awrc'>Card authorization limit check</td></tr>
+<tr><td class='awrnc num'>36,400</td><td class='awrnc num'>18,200,000</td><td class='awrnc num'>0.20</td><td class='awrnc'>8h3kczwq0n2ua</td><td class='awrnc'>ACCT_SVC</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>Account balance lookup by account number</td></tr>
+<tr><td class='awrc num'>7,680</td><td class='awrc num'>1,920,000</td><td class='awrc num'>0.40</td><td class='awrc'>5w4h9fg0u9sp2</td><td class='awrc'>MOBILE_API</td><td class='awrc'>BANKPDB</td><td class='awrc'>Recent payment list for mobile app</td></tr>
+<tr><td class='awrnc num'>3,200</td><td class='awrnc num'>640,000</td><td class='awrnc num'>0.50</td><td class='awrnc'>b1x7qpt53mnd8</td><td class='awrnc'>FRAUD_ENGINE</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>Fraud rules package</td></tr>
+</table>
+        <h3 class="awr">SQL ordered by Version Count</h3>
+        <table border='0' width='980' class='tdiff'><tr><th class='awrbg'>Version Count</th><th class='awrbg'>SQL Id</th><th class='awrbg'>SQL Module</th><th class='awrbg'>PDB Name</th><th class='awrbg'>Reason to Investigate</th></tr>
+<tr><td class='awrc num'>8</td><td class='awrc'>8h3kczwq0n2ua</td><td class='awrc'>ACCT_SVC</td><td class='awrc'>BANKPDB</td><td class='awrc'>Acceptable cursor variation</td></tr>
+<tr><td class='awrnc num'>6</td><td class='awrnc'>cz7mrb1f0a21q</td><td class='awrnc'>CARD_AUTH</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>Acceptable cursor variation</td></tr>
+<tr><td class='awrc num'>4</td><td class='awrc'>5w4h9fg0u9sp2</td><td class='awrc'>MOBILE_API</td><td class='awrc'>BANKPDB</td><td class='awrc'>Stable cursor sharing</td></tr>
+</table>
+        <a class="awr" href="#top">Back to Top</a>
+
+        <h2 class="awr"><a class="awr" name="segments"></a>Segment Statistics</h2>
+        <h3 class="awr">Segments by Logical Reads, Physical Reads, Changes, and Row Lock Waits</h3>
+        <table border='0' width='980' class='tdiff'><tr><th class='awrbg'>Owner</th><th class='awrbg'>Object Name</th><th class='awrbg'>Type</th><th class='awrbg'>Logical Reads</th><th class='awrbg'>Physical Reads</th><th class='awrbg'>DB Block Changes</th><th class='awrbg'>Row Lock Waits</th></tr>
+<tr><td class='awrc'>CORE</td><td class='awrc'>CORE_ACCOUNTS_PK</td><td class='awrc'>INDEX</td><td class='awrc num'>18,900,000</td><td class='awrc num'>120,000</td><td class='awrc num'>0</td><td class='awrc num'>0</td></tr>
+<tr><td class='awrnc'>CARDS</td><td class='awrnc'>CARD_LIMITS_IX1</td><td class='awrnc'>INDEX</td><td class='awrnc num'>14,200,000</td><td class='awrnc num'>80,000</td><td class='awrnc num'>0</td><td class='awrnc num'>0</td></tr>
+<tr><td class='awrc'>PAYMENTS</td><td class='awrc'>PAYMENTS_CUST_TS_IX</td><td class='awrc'>INDEX</td><td class='awrc num'>5,900,000</td><td class='awrc num'>460,000</td><td class='awrc num'>0</td><td class='awrc num'>0</td></tr>
+<tr><td class='awrnc'>PAYMENTS</td><td class='awrnc'>PAYMENTS</td><td class='awrnc'>TABLE</td><td class='awrnc num'>4,800,000</td><td class='awrnc num'>950,000</td><td class='awrnc num'>12,000</td><td class='awrnc num'>180</td></tr>
+</table>
+        <a class="awr" href="#top">Back to Top</a>
+
+        <h2 class="awr"><a class="awr" name="ash"></a>Active Session History Summary</h2>
+        <table border='0' width='980' class='tdiff'><tr><th class='awrbg'>Sample Slot</th><th class='awrbg'>Top Event</th><th class='awrbg'>Module</th><th class='awrbg'>SQL Id</th><th class='awrbg'>Interpretation</th></tr>
+<tr><td class='awrc'>15:00-15:10</td><td class='awrc'>DB CPU</td><td class='awrc'>CARD_AUTH</td><td class='awrc'>cz7mrb1f0a21q</td><td class='awrc'>Normal card authorization peak</td></tr>
+<tr><td class='awrnc'>15:10-15:20</td><td class='awrnc'>db file sequential read</td><td class='awrnc'>ACCT_SVC</td><td class='awrnc'>8h3kczwq0n2ua</td><td class='awrnc'>Index lookups, acceptable latency</td></tr>
+<tr><td class='awrc'>15:20-15:30</td><td class='awrc'>log file sync</td><td class='awrc'>PAYMENT_API</td><td class='awrc'>5w4h9fg0u9sp2</td><td class='awrc'>Commit cost visible but not dominant</td></tr>
+</table>
+        <a class="awr" href="#top">Back to Top</a>
+
+        <h2 class="awr"><a class="awr" name="addm"></a>ADDM Report</h2>
+        <div class="note">Begin with ADDM to identify where DB Time went. Then verify each finding in the AWR tables above before taking action.</div>
+        <table border='0' width='1100' class='tdiff'><tr><th class='awrbg'>Finding</th><th class='awrbg'>Impact</th><th class='awrbg'>Evidence</th><th class='awrbg'>Recommended Action</th></tr>
+<tr><td class='awrc'>No critical findings</td><td class='awrc'>Low</td><td class='awrc'>Database time is spread across CPU, commit, and normal index I/O. No single bottleneck dominates.</td><td class='awrc'>Keep this report as your baseline. Compare bad reports against its DB Time per second, top waits, hard parse rate, and top SQL shape.</td></tr>
+</table>
+        <a class="awr" href="#top">Back to Top</a>
+
+        <h2 class="awr"><a class="awr" name="advisor"></a>SQL Tuning Advisor Practice</h2>
+        <div class="note">Use SQL Tuning Advisor when the problem is a specific SQL statement. If the bottleneck is locking, commit latency, or application behavior, advisor output may be secondary evidence rather than the fix.</div>
+        <table border='0' width='1100' class='tdiff'><tr><th class='awrbg'>Topic</th><th class='awrbg'>Recommendation</th><th class='awrbg'>Why It Matters</th></tr>
+<tr><td class='awrc'>Review top SQL plans</td><td class='awrc'>No emergency action. Capture SQL plan baselines for the four critical OLTP SQL statements before release windows.</td><td class='awrc'>Prevent plan instability during stats refresh or application deployment.</td></tr>
+</table>
+
+        <h2 class="awr">End of Report</h2>
+        </body></html>

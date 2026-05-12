@@ -1,0 +1,205 @@
+        <html lang="en"><head><title>AWR Report for DB: BANKPRD, Scenario: Application Locking and Blocking Sessions</title>
+        <style type="text/css">
+body.awr {font: 10pt Arial,Helvetica,Geneva,sans-serif;color:black;background:white;margin:16px;}
+pre.awr {font:8pt Courier;color:black;background:white;white-space:pre-wrap;}
+h1.awr {font:bold 20pt Arial,Helvetica,Geneva,sans-serif;color:#336699;background-color:white;border-bottom:1px solid #cccc99;margin:0 0 8px 0;padding:0;}
+h2.awr {font:bold 18pt Arial,Helvetica,Geneva,sans-serif;color:#336699;background-color:white;margin:18px 0 4px 0;}
+h3.awr {font:bold 15pt Arial,Helvetica,Geneva,sans-serif;color:#336699;background-color:white;margin:14px 0 4px 0;}
+h4.awr {font:bold 11pt Arial,Helvetica,Geneva,sans-serif;color:#333;margin:10px 0 3px 0;}
+li.awr {font: 8pt Arial,Helvetica,Geneva,sans-serif;color:black;background:white;margin-bottom:2px;}
+th.awrnobg {font:bold 8pt Arial,Helvetica,Geneva,sans-serif;color:black;background:white;padding:3px 6px;}
+th.awrbg {font:bold 8pt Arial,Helvetica,Geneva,sans-serif;color:white;background:#0066CC;padding:3px 6px;text-align:left;}
+td.awrnc {font:8pt Arial,Helvetica,Geneva,sans-serif;color:black;background:white;vertical-align:top;padding:3px 6px;}
+td.awrc {font:8pt Arial,Helvetica,Geneva,sans-serif;color:black;background:#FFFFCC;vertical-align:top;padding:3px 6px;}
+td.num {text-align:right;}
+table.tdiff {border-collapse:collapse;margin:4px 0 10px 0;}
+table.tdiff td, table.tdiff th {border:1px solid #d0d0b8;}
+a.awr {font:bold 8pt Arial,Helvetica,sans-serif;color:#663300;vertical-align:top;}
+.note {max-width:980px;border-left:4px solid #0066CC;background:#f5f9ff;padding:8px 10px;margin:8px 0 12px 0;font-size:9pt;line-height:1.35;}
+.warning {max-width:980px;border-left:4px solid #b45309;background:#fff7ed;padding:8px 10px;margin:8px 0 12px 0;font-size:9pt;line-height:1.35;}
+.finding {max-width:980px;border-left:4px solid #7c3aed;background:#f7f3ff;padding:8px 10px;margin:8px 0 12px 0;font-size:9pt;line-height:1.35;}
+.small {font-size:8pt;color:#444;}
+.toc li {margin-bottom:4px;}
+</style></head><body class="awr">
+        <h1 class="awr">WORKLOAD REPOSITORY PDB report - BANKPRD - Application Locking and Blocking Sessions</h1>
+        <div class="warning"><b>Training report:</b> Mock AWR data for learning. The values are designed to resemble real production symptoms, not to represent a real bank or customer.</div>
+        <table border='0' width='980' class='tdiff'><tr><th class='awrbg'>DB Name</th><th class='awrbg'>DB Id</th><th class='awrbg'>Unique Name</th><th class='awrbg'>Role</th><th class='awrbg'>Edition</th><th class='awrbg'>Release</th><th class='awrbg'>RAC</th><th class='awrbg'>CDB</th></tr>
+<tr><td class='awrc'>BANKPRD</td><td class='awrc num'>918273645</td><td class='awrc'>bankprd</td><td class='awrc'>PRIMARY</td><td class='awrc'>EE</td><td class='awrc num'>19.20.0.0.0</td><td class='awrc'>YES</td><td class='awrc'>YES</td></tr>
+</table>
+        <table border='0' width='760' class='tdiff'><tr><th class='awrbg'>Instance</th><th class='awrbg'>Inst Num</th><th class='awrbg'>Startup Time</th><th class='awrbg'>User Name</th><th class='awrbg'>System Data Visible</th></tr>
+<tr><td class='awrc'>bankprd1</td><td class='awrc num'>1</td><td class='awrc'>12-May-26 04:15</td><td class='awrc'>SYS</td><td class='awrc'>YES</td></tr>
+</table>
+        <table border='0' width='760' class='tdiff'><tr><th class='awrbg'>Host Name</th><th class='awrbg'>Platform</th><th class='awrbg'>CPUs</th><th class='awrbg'>Cores</th><th class='awrbg'>Sockets</th><th class='awrbg'>Memory (GB)</th></tr>
+<tr><td class='awrc'>bkdb-prd1-rac2</td><td class='awrc'>Linux x86 64-bit</td><td class='awrc num'>48</td><td class='awrc num'>24</td><td class='awrc num'>2</td><td class='awrc num'>384.00</td></tr>
+</table>
+        <table border='0' width='760' class='tdiff'><tr><th class='awrbg'></th><th class='awrbg'>Snap Id</th><th class='awrbg'>Snap Time</th><th class='awrbg'>Sessions</th><th class='awrbg'>Cursors/Session</th></tr>
+<tr><td class='awrc'>Begin Snap</td><td class='awrc num'>4401</td><td class='awrc'>12-May-26 14:00:00</td><td class='awrc num'>980</td><td class='awrc num'>8.4</td></tr>
+<tr><td class='awrnc'>End Snap</td><td class='awrnc num'>4402</td><td class='awrnc'>12-May-26 15:00:00</td><td class='awrnc num'>1560</td><td class='awrnc num'>8.8</td></tr>
+<tr><td class='awrc'>Elapsed</td><td class='awrc'>&nbsp;</td><td class='awrc'>60 (mins)</td><td class='awrc'>&nbsp;</td><td class='awrc'>&nbsp;</td></tr>
+<tr><td class='awrnc'>DB Time</td><td class='awrnc'>&nbsp;</td><td class='awrnc'>2550 (mins)</td><td class='awrnc'>&nbsp;</td><td class='awrnc'>&nbsp;</td></tr>
+<tr><td class='awrc'>Average Active Sessions</td><td class='awrc'>&nbsp;</td><td class='awrc num'>42.5</td><td class='awrc'>&nbsp;</td><td class='awrc'>&nbsp;</td></tr>
+</table>
+
+<h2 class="awr"><a class="awr" name="top"></a>Main Report</h2>
+<ul class="toc">
+<li class="awr"><a class="awr" href="#summary">Report Summary</a></li>
+<li class="awr"><a class="awr" href="#instance">Instance Efficiency and IO Profile</a></li>
+<li class="awr"><a class="awr" href="#waits">Wait Events Statistics</a></li>
+<li class="awr"><a class="awr" href="#sql">SQL Statistics</a></li>
+<li class="awr"><a class="awr" href="#segments">Segment Statistics</a></li>
+<li class="awr"><a class="awr" href="#ash">Active Session History Summary</a></li>
+<li class="awr"><a class="awr" href="#addm">ADDM Report</a></li>
+<li class="awr"><a class="awr" href="#advisor">SQL Tuning Advisor Practice</a></li>
+</ul>
+
+        <h2 class="awr"><a class="awr" name="summary"></a>Report Summary</h2>
+        <div class="note">End-of-day payment posting created a hot row in settlement control. Many sessions waited on enq: TX - row lock contention.</div>
+        <h3 class="awr">Load Profile</h3>
+        <table border='0' width='980' class='tdiff'><tr><th class='awrbg'></th><th class='awrbg'>Per Second</th><th class='awrbg'>Per Transaction</th><th class='awrbg'>Per Exec</th><th class='awrbg'>Per Call</th></tr>
+<tr><td class='awrc'>DB Time(s)</td><td class='awrc num'>42.5</td><td class='awrc num'>0.900</td><td class='awrc num'>0.180</td><td class='awrc num'>0.280</td></tr>
+<tr><td class='awrnc'>DB CPU(s)</td><td class='awrnc num'>8.6</td><td class='awrnc num'>0.182</td><td class='awrnc num'>0.036</td><td class='awrnc num'>0.057</td></tr>
+<tr><td class='awrc'>Redo size (bytes)</td><td class='awrc num'>38,700,000</td><td class='awrc num'>819,000</td><td class='awrc'>&nbsp;</td><td class='awrc'>&nbsp;</td></tr>
+<tr><td class='awrnc'>Logical read (blocks)</td><td class='awrnc num'>980,000</td><td class='awrnc num'>20,762</td><td class='awrnc'>&nbsp;</td><td class='awrnc'>&nbsp;</td></tr>
+<tr><td class='awrc'>Physical read (blocks)</td><td class='awrc num'>8,100</td><td class='awrc num'>172</td><td class='awrc'>&nbsp;</td><td class='awrc'>&nbsp;</td></tr>
+<tr><td class='awrnc'>Block changes</td><td class='awrnc num'>148,000</td><td class='awrnc num'>3,136</td><td class='awrnc'>&nbsp;</td><td class='awrnc'>&nbsp;</td></tr>
+<tr><td class='awrc'>User calls</td><td class='awrc num'>152</td><td class='awrc num'>3.2</td><td class='awrc'>&nbsp;</td><td class='awrc'>&nbsp;</td></tr>
+<tr><td class='awrnc'>Executes (SQL)</td><td class='awrnc num'>14,200</td><td class='awrnc num'>301</td><td class='awrnc'>&nbsp;</td><td class='awrnc'>&nbsp;</td></tr>
+<tr><td class='awrc'>Rollbacks</td><td class='awrc num'>12</td><td class='awrc num'>0.25</td><td class='awrc'>&nbsp;</td><td class='awrc'>&nbsp;</td></tr>
+<tr><td class='awrnc'>Transactions</td><td class='awrnc num'>47</td><td class='awrnc'>&nbsp;</td><td class='awrnc'>&nbsp;</td><td class='awrnc'>&nbsp;</td></tr>
+</table>
+        <h3 class="awr">How to Read This Scenario</h3>
+        <div class="finding">AWR tells you the wait class, not only the SQL text. If Application waits dominate, an index may already be perfect. The cure can be transaction design, commit timing, or reducing hot rows.</div>
+        <a class="awr" href="#top">Back to Top</a>
+
+        <h2 class="awr"><a class="awr" name="instance"></a>Instance Efficiency and IO Profile</h2>
+        <h3 class="awr">Instance Efficiency Percentages</h3>
+        <table border='0' width='520' class='tdiff'><tr><th class='awrbg'>Statistic</th><th class='awrbg'>Value</th></tr>
+<tr><td class='awrc'>Buffer Nowait %</td><td class='awrc num'>96.88</td></tr>
+<tr><td class='awrnc'>Buffer Hit %</td><td class='awrnc num'>99.17</td></tr>
+<tr><td class='awrc'>Library Hit %</td><td class='awrc num'>99.30</td></tr>
+<tr><td class='awrnc'>Execute to Parse %</td><td class='awrnc num'>96.10</td></tr>
+<tr><td class='awrc'>Parse CPU to Parse Elapsed %</td><td class='awrc num'>85.00</td></tr>
+<tr><td class='awrnc'>Soft Parse %</td><td class='awrnc num'>98.91</td></tr>
+<tr><td class='awrc'>Latch Hit %</td><td class='awrc num'>98.42</td></tr>
+<tr><td class='awrnc'>Non-Parse CPU %</td><td class='awrnc num'>98.00</td></tr>
+</table>
+        <div class="note">Use these percentages as clues, not as absolute health scores. A high buffer hit ratio can still hide bad SQL with huge logical reads, and a low soft parse percentage points toward cursor sharing or hard parse problems.</div>
+        <h3 class="awr">IO Profile</h3>
+        <table border='0' width='760' class='tdiff'><tr><th class='awrbg'></th><th class='awrbg'>Read+Write Per Second</th><th class='awrbg'>Read Per Second</th><th class='awrbg'>Write Per Second</th></tr>
+<tr><td class='awrc'>Database Requests</td><td class='awrc num'>17,200</td><td class='awrc num'>8,100</td><td class='awrc num'>9,100</td></tr>
+<tr><td class='awrnc'>Database MB</td><td class='awrnc num'>133.5</td><td class='awrnc num'>63.3</td><td class='awrnc num'>70.2</td></tr>
+<tr><td class='awrc'>Redo MB</td><td class='awrc'>&nbsp;</td><td class='awrc'>&nbsp;</td><td class='awrc num'>36.9</td></tr>
+<tr><td class='awrnc'>Avg Read Latency</td><td class='awrnc'>&nbsp;</td><td class='awrnc'>3.0 ms</td><td class='awrnc'>&nbsp;</td></tr>
+</table>
+
+        <h2 class="awr"><a class="awr" name="waits"></a>Wait Events Statistics</h2>
+        <h3 class="awr">Top 10 Foreground Events by Total Wait Time</h3>
+        <table border='0' width='980' class='tdiff'><tr><th class='awrbg'>Event</th><th class='awrbg'>Waits</th><th class='awrbg'>Total Wait Time (sec)</th><th class='awrbg'>Avg Wait</th><th class='awrbg'>% DB time</th><th class='awrbg'>Wait Class</th></tr>
+<tr><td class='awrc'>enq: TX - row lock contention</td><td class='awrc num'>18,200</td><td class='awrc num'>97,370</td><td class='awrc'>5.35 s</td><td class='awrc num'>63.6</td><td class='awrc'>Application</td></tr>
+<tr><td class='awrnc'>DB CPU</td><td class='awrnc'>&nbsp;</td><td class='awrnc num'>30,960</td><td class='awrnc'>&nbsp;</td><td class='awrnc num'>20.2</td><td class='awrnc'>&nbsp;</td></tr>
+<tr><td class='awrc'>buffer busy waits</td><td class='awrc num'>240,000</td><td class='awrc num'>8,400</td><td class='awrc'>35.0 ms</td><td class='awrc num'>5.5</td><td class='awrc'>Concurrency</td></tr>
+<tr><td class='awrnc'>log file sync</td><td class='awrnc num'>169,000</td><td class='awrnc num'>5,070</td><td class='awrnc'>30.0 ms</td><td class='awrnc num'>3.3</td><td class='awrnc'>Commit</td></tr>
+<tr><td class='awrc'>gc buffer busy acquire</td><td class='awrc num'>36,000</td><td class='awrc num'>3,960</td><td class='awrc'>110 ms</td><td class='awrc num'>2.6</td><td class='awrc'>Cluster</td></tr>
+<tr><td class='awrnc'>db file sequential read</td><td class='awrnc num'>820,000</td><td class='awrnc num'>2,460</td><td class='awrnc'>3.0 ms</td><td class='awrnc num'>1.6</td><td class='awrnc'>User I/O</td></tr>
+</table>
+        <h3 class="awr">Wait Classes by Total Wait Time</h3>
+        <table border='0' width='980' class='tdiff'><tr><th class='awrbg'>Wait Class</th><th class='awrbg'>Waits</th><th class='awrbg'>Total Wait Time (sec)</th><th class='awrbg'>Avg Wait Time</th><th class='awrbg'>% DB time</th><th class='awrbg'>Avg Active Sessions</th></tr>
+<tr><td class='awrc'>Application</td><td class='awrc num'>18,200</td><td class='awrc num'>97,370</td><td class='awrc'>5.35 s</td><td class='awrc num'>63.6</td><td class='awrc num'>27.0</td></tr>
+<tr><td class='awrnc'>DB CPU</td><td class='awrnc'>&nbsp;</td><td class='awrnc num'>30,960</td><td class='awrnc'>&nbsp;</td><td class='awrnc num'>20.2</td><td class='awrnc num'>8.6</td></tr>
+<tr><td class='awrc'>Concurrency</td><td class='awrc num'>240,000</td><td class='awrc num'>8,400</td><td class='awrc'>35.0 ms</td><td class='awrc num'>5.5</td><td class='awrc num'>2.3</td></tr>
+<tr><td class='awrnc'>Commit</td><td class='awrnc num'>169,000</td><td class='awrnc num'>5,070</td><td class='awrnc'>30.0 ms</td><td class='awrnc num'>3.3</td><td class='awrnc num'>1.4</td></tr>
+<tr><td class='awrc'>Cluster</td><td class='awrc num'>36,000</td><td class='awrc num'>3,960</td><td class='awrc'>110 ms</td><td class='awrc num'>2.6</td><td class='awrc num'>1.1</td></tr>
+<tr><td class='awrnc'>User I/O</td><td class='awrnc num'>820,000</td><td class='awrnc num'>2,460</td><td class='awrnc'>3.0 ms</td><td class='awrnc num'>1.6</td><td class='awrnc num'>0.7</td></tr>
+</table>
+        <h3 class="awr">Time Model Statistics</h3>
+        <table border='0' width='760' class='tdiff'><tr><th class='awrbg'>Statistic Name</th><th class='awrbg'>Time (s)</th><th class='awrbg'>% of DB Time</th></tr>
+<tr><td class='awrc'>sql execute elapsed time</td><td class='awrc num'>148,900</td><td class='awrc num'>97.3</td></tr>
+<tr><td class='awrnc'>DB CPU</td><td class='awrnc num'>30,960</td><td class='awrnc num'>20.2</td></tr>
+<tr><td class='awrc'>PL/SQL execution elapsed time</td><td class='awrc num'>18,100</td><td class='awrc num'>11.8</td></tr>
+<tr><td class='awrnc'>parse time elapsed</td><td class='awrnc num'>620</td><td class='awrnc num'>0.4</td></tr>
+<tr><td class='awrc'>DB time</td><td class='awrc num'>153,000</td><td class='awrc'>&nbsp;</td></tr>
+</table>
+        <a class="awr" href="#top">Back to Top</a>
+
+        <h2 class="awr"><a class="awr" name="sql"></a>SQL Statistics</h2>
+        <h3 class="awr">SQL ordered by Elapsed Time</h3>
+        <table border='0' width='1200' class='tdiff'><tr><th class='awrbg'>Elapsed Time (s)</th><th class='awrbg'>Executions</th><th class='awrbg'>Elapsed per Exec (s)</th><th class='awrbg'>CPU Time (s)</th><th class='awrbg'>User I/O Time (s)</th><th class='awrbg'>Buffer Gets</th><th class='awrbg'>SQL Id</th><th class='awrbg'>SQL Module</th><th class='awrbg'>PDB Name</th><th class='awrbg'>SQL Text</th></tr>
+<tr><td class='awrc num'>88,600</td><td class='awrc num'>18,200</td><td class='awrc num'>4.8681</td><td class='awrc num'>5,200</td><td class='awrc num'>410</td><td class='awrc num'>1,120,000</td><td class='awrc'>2gk0s8h4b91qx</td><td class='awrc'>PAYMENT_POST</td><td class='awrc'>BANKPDB</td><td class='awrc'>UPDATE settlement_control SET last_batch_no = :B1, status = :B2 WHERE settlement_date = :B3</td></tr>
+<tr><td class='awrnc num'>18,400</td><td class='awrnc num'>420,000</td><td class='awrnc num'>0.0438</td><td class='awrnc num'>10,900</td><td class='awrnc num'>1,200</td><td class='awrnc num'>6,800,000</td><td class='awrnc'>2qv5mmu1rrp0z</td><td class='awrnc'>PAYMENT_POST</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>INSERT INTO payment_ledger(...) VALUES (...)</td></tr>
+<tr><td class='awrc num'>8,100</td><td class='awrc num'>19,000</td><td class='awrc num'>0.4263</td><td class='awrc num'>2,200</td><td class='awrc num'>380</td><td class='awrc num'>980,000</td><td class='awrc'>6cm9sgg9qtb34</td><td class='awrc'>PAYMENT_POST</td><td class='awrc'>BANKPDB</td><td class='awrc'>UPDATE payments SET status = :B1 WHERE payment_id = :B2</td></tr>
+</table>
+        <h3 class="awr">SQL ordered by CPU Time</h3>
+        <table border='0' width='1200' class='tdiff'><tr><th class='awrbg'>CPU Time (s)</th><th class='awrbg'>Executions</th><th class='awrbg'>Elapsed Time (s)</th><th class='awrbg'>Buffer Gets</th><th class='awrbg'>SQL Id</th><th class='awrbg'>SQL Module</th><th class='awrbg'>PDB Name</th><th class='awrbg'>SQL Text</th></tr>
+<tr><td class='awrc num'>10,900</td><td class='awrc num'>420,000</td><td class='awrc num'>18,400</td><td class='awrc num'>6,800,000</td><td class='awrc'>2qv5mmu1rrp0z</td><td class='awrc'>PAYMENT_POST</td><td class='awrc'>BANKPDB</td><td class='awrc'>INSERT INTO payment_ledger(...) VALUES (...)</td></tr>
+<tr><td class='awrnc num'>5,200</td><td class='awrnc num'>18,200</td><td class='awrnc num'>88,600</td><td class='awrnc num'>1,120,000</td><td class='awrnc'>2gk0s8h4b91qx</td><td class='awrnc'>PAYMENT_POST</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>UPDATE settlement_control SET last_batch_no = :B1, status = :B2 WHERE settlement_date = :B3</td></tr>
+<tr><td class='awrc num'>2,200</td><td class='awrc num'>19,000</td><td class='awrc num'>8,100</td><td class='awrc num'>980,000</td><td class='awrc'>6cm9sgg9qtb34</td><td class='awrc'>PAYMENT_POST</td><td class='awrc'>BANKPDB</td><td class='awrc'>UPDATE payments SET status = :B1 WHERE payment_id = :B2</td></tr>
+</table>
+        <h3 class="awr">SQL ordered by Gets</h3>
+        <table border='0' width='1200' class='tdiff'><tr><th class='awrbg'>Buffer Gets</th><th class='awrbg'>Executions</th><th class='awrbg'>Elapsed Time (s)</th><th class='awrbg'>CPU Time (s)</th><th class='awrbg'>SQL Id</th><th class='awrbg'>SQL Module</th><th class='awrbg'>PDB Name</th><th class='awrbg'>SQL Text</th></tr>
+<tr><td class='awrc num'>6,800,000</td><td class='awrc num'>420,000</td><td class='awrc num'>18,400</td><td class='awrc num'>10,900</td><td class='awrc'>2qv5mmu1rrp0z</td><td class='awrc'>PAYMENT_POST</td><td class='awrc'>BANKPDB</td><td class='awrc'>INSERT INTO payment_ledger(...) VALUES (...)</td></tr>
+<tr><td class='awrnc num'>1,120,000</td><td class='awrnc num'>18,200</td><td class='awrnc num'>88,600</td><td class='awrnc num'>5,200</td><td class='awrnc'>2gk0s8h4b91qx</td><td class='awrnc'>PAYMENT_POST</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>UPDATE settlement_control SET last_batch_no = :B1, status = :B2 WHERE settlement_date = :B3</td></tr>
+<tr><td class='awrc num'>980,000</td><td class='awrc num'>19,000</td><td class='awrc num'>8,100</td><td class='awrc num'>2,200</td><td class='awrc'>6cm9sgg9qtb34</td><td class='awrc'>PAYMENT_POST</td><td class='awrc'>BANKPDB</td><td class='awrc'>UPDATE payments SET status = :B1 WHERE payment_id = :B2</td></tr>
+</table>
+        <h3 class="awr">SQL ordered by User I/O Wait Time</h3>
+        <table border='0' width='1200' class='tdiff'><tr><th class='awrbg'>User I/O Time (s)</th><th class='awrbg'>Executions</th><th class='awrbg'>Elapsed Time (s)</th><th class='awrbg'>CPU Time (s)</th><th class='awrbg'>SQL Id</th><th class='awrbg'>SQL Module</th><th class='awrbg'>PDB Name</th><th class='awrbg'>SQL Text</th></tr>
+<tr><td class='awrc num'>1,200</td><td class='awrc num'>420,000</td><td class='awrc num'>18,400</td><td class='awrc num'>10,900</td><td class='awrc'>2qv5mmu1rrp0z</td><td class='awrc'>PAYMENT_POST</td><td class='awrc'>BANKPDB</td><td class='awrc'>INSERT INTO payment_ledger(...) VALUES (...)</td></tr>
+<tr><td class='awrnc num'>410</td><td class='awrnc num'>18,200</td><td class='awrnc num'>88,600</td><td class='awrnc num'>5,200</td><td class='awrnc'>2gk0s8h4b91qx</td><td class='awrnc'>PAYMENT_POST</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>UPDATE settlement_control SET last_batch_no = :B1, status = :B2 WHERE settlement_date = :B3</td></tr>
+<tr><td class='awrc num'>380</td><td class='awrc num'>19,000</td><td class='awrc num'>8,100</td><td class='awrc num'>2,200</td><td class='awrc'>6cm9sgg9qtb34</td><td class='awrc'>PAYMENT_POST</td><td class='awrc'>BANKPDB</td><td class='awrc'>UPDATE payments SET status = :B1 WHERE payment_id = :B2</td></tr>
+</table>
+        <h3 class="awr">SQL ordered by Executions</h3>
+        <table border='0' width='1200' class='tdiff'><tr><th class='awrbg'>Executions</th><th class='awrbg'>Elapsed Time (s)</th><th class='awrbg'>CPU Time (s)</th><th class='awrbg'>User I/O Time (s)</th><th class='awrbg'>SQL Id</th><th class='awrbg'>SQL Module</th><th class='awrbg'>PDB Name</th><th class='awrbg'>SQL Text</th></tr>
+<tr><td class='awrc num'>420,000</td><td class='awrc num'>18,400</td><td class='awrc num'>10,900</td><td class='awrc num'>1,200</td><td class='awrc'>2qv5mmu1rrp0z</td><td class='awrc'>PAYMENT_POST</td><td class='awrc'>BANKPDB</td><td class='awrc'>INSERT INTO payment_ledger(...) VALUES (...)</td></tr>
+<tr><td class='awrnc num'>19,000</td><td class='awrnc num'>8,100</td><td class='awrnc num'>2,200</td><td class='awrnc num'>380</td><td class='awrnc'>6cm9sgg9qtb34</td><td class='awrnc'>PAYMENT_POST</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>UPDATE payments SET status = :B1 WHERE payment_id = :B2</td></tr>
+<tr><td class='awrc num'>18,200</td><td class='awrc num'>88,600</td><td class='awrc num'>5,200</td><td class='awrc num'>410</td><td class='awrc'>2gk0s8h4b91qx</td><td class='awrc'>PAYMENT_POST</td><td class='awrc'>BANKPDB</td><td class='awrc'>UPDATE settlement_control SET last_batch_no = :B1, status = :B2 WHERE settlement_date = :B3</td></tr>
+</table>
+        <h3 class="awr">SQL ordered by Parse Calls</h3>
+        <table border='0' width='1200' class='tdiff'><tr><th class='awrbg'>Parse Calls</th><th class='awrbg'>Executions</th><th class='awrbg'>% Total Parses</th><th class='awrbg'>SQL Id</th><th class='awrbg'>SQL Module</th><th class='awrbg'>PDB Name</th><th class='awrbg'>SQL Text</th></tr>
+<tr><td class='awrc num'>1,260</td><td class='awrc num'>420,000</td><td class='awrc num'>0.30</td><td class='awrc'>2qv5mmu1rrp0z</td><td class='awrc'>PAYMENT_POST</td><td class='awrc'>BANKPDB</td><td class='awrc'>Post individual payment ledger entries</td></tr>
+<tr><td class='awrnc num'>76</td><td class='awrnc num'>19,000</td><td class='awrnc num'>0.40</td><td class='awrnc'>6cm9sgg9qtb34</td><td class='awrnc'>PAYMENT_POST</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>Reverse failed payment</td></tr>
+<tr><td class='awrc num'>36</td><td class='awrc num'>18,200</td><td class='awrc num'>0.20</td><td class='awrc'>2gk0s8h4b91qx</td><td class='awrc'>PAYMENT_POST</td><td class='awrc'>BANKPDB</td><td class='awrc'>Update settlement control row</td></tr>
+</table>
+        <h3 class="awr">SQL ordered by Version Count</h3>
+        <table border='0' width='980' class='tdiff'><tr><th class='awrbg'>Version Count</th><th class='awrbg'>SQL Id</th><th class='awrbg'>SQL Module</th><th class='awrbg'>PDB Name</th><th class='awrbg'>Reason to Investigate</th></tr>
+<tr><td class='awrc num'>8</td><td class='awrc'>2gk0s8h4b91qx</td><td class='awrc'>PAYMENT_POST</td><td class='awrc'>BANKPDB</td><td class='awrc'>Acceptable cursor variation</td></tr>
+<tr><td class='awrnc num'>6</td><td class='awrnc'>2qv5mmu1rrp0z</td><td class='awrnc'>PAYMENT_POST</td><td class='awrnc'>BANKPDB</td><td class='awrnc'>Acceptable cursor variation</td></tr>
+<tr><td class='awrc num'>4</td><td class='awrc'>6cm9sgg9qtb34</td><td class='awrc'>PAYMENT_POST</td><td class='awrc'>BANKPDB</td><td class='awrc'>Stable cursor sharing</td></tr>
+</table>
+        <a class="awr" href="#top">Back to Top</a>
+
+        <h2 class="awr"><a class="awr" name="segments"></a>Segment Statistics</h2>
+        <h3 class="awr">Segments by Logical Reads, Physical Reads, Changes, and Row Lock Waits</h3>
+        <table border='0' width='980' class='tdiff'><tr><th class='awrbg'>Owner</th><th class='awrbg'>Object Name</th><th class='awrbg'>Type</th><th class='awrbg'>Logical Reads</th><th class='awrbg'>Physical Reads</th><th class='awrbg'>DB Block Changes</th><th class='awrbg'>Row Lock Waits</th></tr>
+<tr><td class='awrc'>PAYMENTS</td><td class='awrc'>SETTLEMENT_CONTROL</td><td class='awrc'>TABLE</td><td class='awrc num'>1,120,000</td><td class='awrc num'>8,000</td><td class='awrc num'>148,000</td><td class='awrc num'>18,200</td></tr>
+<tr><td class='awrnc'>PAYMENTS</td><td class='awrnc'>SETTLEMENT_CONTROL_PK</td><td class='awrnc'>INDEX</td><td class='awrnc num'>1,080,000</td><td class='awrnc num'>4,000</td><td class='awrnc num'>0</td><td class='awrnc num'>2,100</td></tr>
+<tr><td class='awrc'>PAYMENTS</td><td class='awrc'>PAYMENT_LEDGER</td><td class='awrc'>TABLE</td><td class='awrc num'>6,800,000</td><td class='awrc num'>120,000</td><td class='awrc num'>136,000</td><td class='awrc num'>0</td></tr>
+<tr><td class='awrnc'>PAYMENTS</td><td class='awrnc'>PAYMENTS</td><td class='awrnc'>TABLE</td><td class='awrnc num'>980,000</td><td class='awrnc num'>40,000</td><td class='awrnc num'>12,000</td><td class='awrnc num'>400</td></tr>
+</table>
+        <a class="awr" href="#top">Back to Top</a>
+
+        <h2 class="awr"><a class="awr" name="ash"></a>Active Session History Summary</h2>
+        <table border='0' width='980' class='tdiff'><tr><th class='awrbg'>Sample Slot</th><th class='awrbg'>Top Event</th><th class='awrbg'>Module</th><th class='awrbg'>SQL Id</th><th class='awrbg'>Interpretation</th></tr>
+<tr><td class='awrc'>23:00-23:10</td><td class='awrc'>enq: TX - row lock contention</td><td class='awrc'>PAYMENT_POST</td><td class='awrc'>2gk0s8h4b91qx</td><td class='awrc'>One blocker holds settlement control row</td></tr>
+<tr><td class='awrnc'>23:10-23:20</td><td class='awrnc'>enq: TX - row lock contention</td><td class='awrnc'>PAYMENT_POST</td><td class='awrnc'>2gk0s8h4b91qx</td><td class='awrnc'>Wait chain grows across posting workers</td></tr>
+<tr><td class='awrc'>23:20-23:30</td><td class='awrc'>buffer busy waits</td><td class='awrc'>PAYMENT_POST</td><td class='awrc'>2gk0s8h4b91qx</td><td class='awrc'>Hot block symptoms after lock queue forms</td></tr>
+<tr><td class='awrnc'>23:30-23:40</td><td class='awrnc'>log file sync</td><td class='awrnc'>PAYMENT_POST</td><td class='awrnc'>2qv5mmu1rrp0z</td><td class='awrnc'>Commit waits rise as workers catch up</td></tr>
+</table>
+        <a class="awr" href="#top">Back to Top</a>
+
+        <h2 class="awr"><a class="awr" name="addm"></a>ADDM Report</h2>
+        <div class="note">Begin with ADDM to identify where DB Time went. Then verify each finding in the AWR tables above before taking action.</div>
+        <table border='0' width='1100' class='tdiff'><tr><th class='awrbg'>Finding</th><th class='awrbg'>Impact</th><th class='awrbg'>Evidence</th><th class='awrbg'>Recommended Action</th></tr>
+<tr><td class='awrc'>Application waits caused by row locking</td><td class='awrc'>Very high</td><td class='awrc'>enq: TX - row lock contention is 63.6% of DB Time. SQL ID 2gk0s8h4b91qx updates one settlement control row from many sessions.</td><td class='awrc'>Fix application design. Avoid a single mutable control row or serialize this step intentionally.</td></tr>
+<tr><td class='awrnc'>Hot database object</td><td class='awrnc'>High</td><td class='awrnc'>SETTLEMENT_CONTROL shows row lock waits and high block changes.</td><td class='awrnc'>Investigate blocking session history and application transaction boundaries.</td></tr>
+</table>
+        <a class="awr" href="#top">Back to Top</a>
+
+        <h2 class="awr"><a class="awr" name="advisor"></a>SQL Tuning Advisor Practice</h2>
+        <div class="note">Use SQL Tuning Advisor when the problem is a specific SQL statement. If the bottleneck is locking, commit latency, or application behavior, advisor output may be secondary evidence rather than the fix.</div>
+        <table border='0' width='1100' class='tdiff'><tr><th class='awrbg'>Topic</th><th class='awrbg'>Recommendation</th><th class='awrbg'>Why It Matters</th></tr>
+<tr><td class='awrc'>SQL Tuning Advisor limitation</td><td class='awrc'>SQL Tuning Advisor can verify the update uses the primary key, but it cannot fix long transaction holding a row lock.</td><td class='awrc'>Use ADDM and ASH to prove the issue is application concurrency, not access path.</td></tr>
+<tr><td class='awrnc'>Application redesign</td><td class='awrnc'>Use sequence-generated batch ids, per-worker rows, SKIP LOCKED queueing, or an explicit single posting coordinator.</td><td class='awrnc'>Remove the hot row from the critical path.</td></tr>
+<tr><td class='awrc'>Operational triage</td><td class='awrc'>Find blocker with ASH/V$SESSION, confirm uncommitted transaction, then work with application owner before killing sessions.</td><td class='awrc'>Avoid data corruption or duplicate posting in a banking flow.</td></tr>
+</table>
+
+        <h2 class="awr">End of Report</h2>
+        </body></html>
