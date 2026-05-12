@@ -101,6 +101,60 @@ ALTER SESSION SET statistics_level = ALL;
 
 ---
 
+# HOW TO USE THIS HALF DAY IN CLASS
+
+Most trainees will use two tools:
+
+| Tool | Use It For |
+| ---- | ---------- |
+| SQL Developer | running SQL, creating tables/indexes, viewing query output |
+| PuTTY / SQL*Plus | running advisor packages, spooling reports, checking server-side output |
+
+Practical rule:
+
+```text
+Use SQL Developer when you want to see and test SQL clearly.
+Use PuTTY / SQL*Plus when you want repeatable DBA scripts and report files.
+```
+
+Do not worry if the advisor output is different between trainee machines. The goal is to learn the workflow:
+
+```text
+find SQL_ID
+  -> run advisor
+  -> read recommendation
+  -> validate before/after
+  -> decide safely
+```
+
+---
+
+# SIMPLE MENTAL MODELS
+
+Use these short definitions throughout the session.
+
+| Concept | Simple Meaning |
+| ------- | -------------- |
+| AWR | tells you which SQL or wait consumed time during a window |
+| ADDM | summarizes AWR and suggests where to investigate |
+| SQL Tuning Advisor | analyzes one SQL and suggests possible fixes |
+| SQL Access Advisor | analyzes a workload and suggests access structures |
+| SQL Profile | optimizer guidance for one SQL, not a physical index |
+| Index recommendation | a possible new access path, but with DML cost |
+| Statistics recommendation | optimizer may not understand the data correctly |
+| SQL rewrite | the SQL shape itself may be inefficient |
+| Memory/I/O views | live clues about reads, temp, PGA, SGA, and waits |
+
+The simplest Day 2 flow:
+
+```text
+AWR tells you which SQL is slow.
+SQL Tuning Advisor tells you what may improve that SQL.
+The DBA proves whether the advice is safe.
+```
+
+---
+
 # BEFORE STARTING
 
 This file assumes Day 1 and Day 2 morning setup already created:
@@ -207,6 +261,224 @@ Production question:
 
 ```text
 Which recommendation is safe for this workload?
+```
+
+---
+
+## Plain-English Meaning
+
+| Recommendation | What It Means In Simple Words | Why You Must Be Careful |
+| -------------- | ----------------------------- | ----------------------- |
+| Create index | Oracle thinks the SQL is scanning too much data | index may slow inserts, updates, and deletes |
+| Gather statistics | Oracle may have wrong table/index/cardinality information | new stats can change many plans, not only this SQL |
+| Accept SQL Profile | Oracle wants to give optimizer better guidance for this SQL | profile may stabilize one SQL but must be tested with real bind values |
+| Rewrite SQL | the query logic or shape may be causing extra work | rewrite must return exactly the same business result |
+| No recommendation | advisor did not find a clear safe improvement | DBA must still inspect plan, predicates, rows, and buffers |
+
+Trainer note:
+
+This table should be repeated often. Trainees must understand that advisor output is not an instruction to execute immediately.
+
+---
+
+# PRACTICAL QUICK FLOW - SQL TUNING ADVISOR FOR ONE SQL
+
+Use this section when trainees need the simplest possible SQL Tuning Advisor workflow before the larger lab.
+
+## Step 1 - Run One SQL Once
+
+In SQL Developer, run a clearly tagged SQL:
+
+```sql
+SELECT /* day2_sta_simple_customer */
+       *
+FROM transactions
+WHERE customer_id = 1001;
+```
+
+If `CUSTOMER_ID = 1001` returns no rows, find a valid customer first:
+
+```sql
+SELECT customer_id
+FROM transactions
+WHERE customer_id IS NOT NULL
+FETCH FIRST 1 ROW ONLY;
+```
+
+Then rerun the query with that customer ID.
+
+Why this step matters:
+
+```text
+Oracle must see the SQL before it can have a SQL_ID in V$SQL.
+```
+
+---
+
+## Step 2 - Find The SQL_ID
+
+```sql
+COLUMN sql_id FORMAT A15
+COLUMN sql_text FORMAT A100
+
+SELECT sql_id,
+       child_number,
+       executions,
+       sql_text
+FROM v$sql
+WHERE sql_text LIKE '%day2_sta_simple_customer%'
+AND sql_text NOT LIKE '%v$sql%'
+ORDER BY last_active_time DESC;
+```
+
+Copy the `SQL_ID`.
+
+Example:
+
+```text
+SQL_ID = 9x8abc123xyz
+```
+
+Trainer note:
+
+The comment tag is important. Searching by business predicates alone can accidentally match the wrong SQL.
+
+---
+
+## Step 3 - Drop Any Old Task
+
+Use a fixed task name so the lab is repeatable:
+
+```sql
+BEGIN
+  DBMS_SQLTUNE.DROP_TUNING_TASK('TUNE_CUSTOMER_QUERY');
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE NOT IN (-13605, -13780) THEN
+      RAISE;
+    END IF;
+END;
+/
+```
+
+---
+
+## Step 4 - Create The Tuning Task
+
+Replace `9x8abc123xyz` with the SQL ID from your system:
+
+```sql
+DECLARE
+  l_task_name VARCHAR2(100);
+BEGIN
+  l_task_name := DBMS_SQLTUNE.CREATE_TUNING_TASK(
+    sql_id      => '9x8abc123xyz',
+    scope       => DBMS_SQLTUNE.SCOPE_COMPREHENSIVE,
+    time_limit  => 60,
+    task_name   => 'TUNE_CUSTOMER_QUERY',
+    description => 'Simple Day 2 SQL Tuning Advisor demo'
+  );
+END;
+/
+```
+
+Meaning:
+
+```text
+Create a tuning job for this one SQL_ID.
+Give Oracle up to 60 seconds to analyze it.
+```
+
+---
+
+## Step 5 - Execute The Task
+
+```sql
+BEGIN
+  DBMS_SQLTUNE.EXECUTE_TUNING_TASK(
+    task_name => 'TUNE_CUSTOMER_QUERY'
+  );
+END;
+/
+```
+
+Check status:
+
+```sql
+SELECT task_name,
+       status
+FROM user_advisor_tasks
+WHERE task_name = 'TUNE_CUSTOMER_QUERY';
+```
+
+Expected:
+
+```text
+STATUS = COMPLETED
+```
+
+---
+
+## Step 6 - View The Suggestions Report
+
+```sql
+SELECT DBMS_SQLTUNE.REPORT_TUNING_TASK(
+         task_name => 'TUNE_CUSTOMER_QUERY',
+         type      => 'TEXT',
+         level     => 'ALL',
+         section   => 'ALL'
+       ) AS report
+FROM dual;
+```
+
+Read the report slowly.
+
+Look for:
+
+* finding
+* recommendation
+* estimated benefit
+* suggested command
+* reason
+
+Example recommendation:
+
+```text
+Recommendation: Create index on TRANSACTIONS(CUSTOMER_ID)
+```
+
+Meaning:
+
+```text
+Oracle thinks this query is reading too much transaction data.
+An index on CUSTOMER_ID may help find the target rows faster.
+```
+
+---
+
+## Step 7 - Optional Cleanup
+
+```sql
+BEGIN
+  DBMS_SQLTUNE.DROP_TUNING_TASK(
+    task_name => 'TUNE_CUSTOMER_QUERY'
+  );
+END;
+/
+```
+
+Trainer checkpoint:
+
+Ask trainees:
+
+```text
+If the advisor says create an index, what must we check before doing it?
+```
+
+Expected answer:
+
+```text
+existing indexes, DML impact, storage, before/after metrics, and rollback plan
 ```
 
 ---
@@ -730,6 +1002,66 @@ The DBA must prove the fix is safe.
 
 ---
 
+# SIMPLE DIFFERENCE BETWEEN THE TWO ADVISORS
+
+Use this comparison before starting the access advisor lab.
+
+```text
+SQL Tuning Advisor asks:
+How can I improve this one SQL?
+
+SQL Access Advisor asks:
+What indexes, materialized views, or access structures may help this group of SQLs?
+```
+
+Example:
+
+```text
+One customer search is slow
+  -> SQL Tuning Advisor
+
+Many dashboard/report queries scan TRANSACTIONS every day
+  -> SQL Access Advisor or manual workload access design
+```
+
+Production warning:
+
+```text
+A good index for one SQL can be a bad index for the whole application.
+SQL Access Advisor thinking helps avoid that mistake.
+```
+
+---
+
+## Practical Access-Design Mental Model
+
+Before using any advisor, write down the pattern:
+
+| Question | Example |
+| -------- | ------- |
+| Which table is large? | `TRANSACTIONS` |
+| Which column filters rows? | `TRANSACTION_DATE` |
+| Which column joins tables? | `CUSTOMER_ID` |
+| Which column groups/sorts output? | `BRANCH_ID` |
+| Is this OLTP or reporting? | reporting |
+| Is the table DML-heavy? | yes, transactions table changes often |
+
+Then decide the type of structure:
+
+| Pattern | Candidate Structure |
+| ------- | ------------------- |
+| equality filter | normal B-tree index |
+| date range filter | date-leading composite index |
+| repeated group-by report | materialized view or summary table |
+| many queries share same filters | shared composite index |
+| report scans most of table | index may not help; consider summary/MV/partitioning |
+
+Trainer note:
+
+This manual thinking is more important than the tool. SQL Access Advisor can help, but the DBA must still understand the workload.
+
+---
+
 ## Trainer Delivery
 
 "SQL Access Advisor is about access structures for a workload.
@@ -990,6 +1322,54 @@ This manual step matters. DBAs should have a hypothesis before reading advisor o
 
 ---
 
+# Practical Example - Why One Index Is Not Always Enough
+
+Suppose these two queries exist:
+
+```sql
+-- Query A
+SELECT *
+FROM transactions
+WHERE customer_id = 1001;
+
+-- Query B
+SELECT branch_id, SUM(amount)
+FROM transactions
+WHERE transaction_date >= SYSDATE - 30
+GROUP BY branch_id;
+```
+
+An index on `CUSTOMER_ID` may help Query A:
+
+```sql
+CREATE INDEX idx_txn_customer
+ON transactions(customer_id);
+```
+
+But it may not help Query B because Query B is driven by date and branch reporting.
+
+For Query B, a better candidate may be:
+
+```sql
+CREATE INDEX idx_txn_date_branch
+ON transactions(transaction_date, branch_id);
+```
+
+Or, if this report runs frequently, a summary structure may be better:
+
+```text
+Materialized view by branch and day
+```
+
+Teaching point:
+
+```text
+SQL tuning fixes one query.
+Access design looks across many queries.
+```
+
+---
+
 # SECTION 7 - SQL ACCESS ADVISOR PRACTICAL PATH (3:45 - 4:20)
 
 # Slide 9 - Practical Advisor Path
@@ -1136,6 +1516,57 @@ Production questions:
 * Is the recommendation duplicating an index?
 * Is a materialized view refresh strategy needed?
 * Can we rollback quickly?
+
+---
+
+# Simple SQL Access Advisor Flow
+
+When SQL Access Advisor is available, the practical flow is:
+
+```text
+1. Choose representative SQL or workload
+2. Run SQL Access Advisor
+3. Read index/MV recommendations
+4. Check whether recommendations overlap existing indexes
+5. Estimate DML and storage cost
+6. Test candidate structure in a safe way
+7. Keep, modify, or reject the recommendation
+```
+
+For classroom use, remember:
+
+```text
+The recommendation is not the final answer.
+The before/after test is the final evidence.
+```
+
+---
+
+# Index Recommendation Checklist
+
+Use this checklist whenever an advisor recommends an index.
+
+| Check | Why It Matters |
+| ----- | -------------- |
+| Does a similar index already exist? | avoid duplicate indexes |
+| Is the leading column selective? | weak leading columns may not help |
+| Does the column order match predicates? | equality columns usually come before range columns |
+| Does it support joins, filters, or sorting? | know exactly why the index exists |
+| Is the table write-heavy? | every DML must maintain the index |
+| How large will the index be? | storage and backup impact |
+| What is rollback? | usually `DROP INDEX`, but plan for it |
+
+Good production wording:
+
+```text
+We will test this as an invisible index first and compare elapsed time, buffers, reads, and plan shape.
+```
+
+Weak wording:
+
+```text
+The advisor recommended it, so create it.
+```
 
 ---
 
@@ -1360,6 +1791,61 @@ We will inspect:
 
 ---
 
+# Simple Memory/I/O Diagnosis Mental Model
+
+Do not start by changing memory parameters.
+
+Start with evidence:
+
+```text
+Are sessions waiting?
+Which wait event?
+Which SQL caused the reads or temp usage?
+Is this a SQL problem, memory pressure, storage latency, or normal workload?
+```
+
+Practical mapping:
+
+| Symptom | First Meaning | Next Check |
+| ------- | ------------- | ---------- |
+| high `db file scattered read` | full scans or large reads | SQL by reads and execution plan |
+| high `db file sequential read` | index/table rowid lookups | SQL by reads, index access pattern |
+| high `direct path read` | large scans bypassing buffer cache | reporting SQL, parallel/direct reads |
+| high temp usage | sort/hash operation spilled | SQL_ID, plan, PGA stats |
+| low PGA cache hit | workareas may be under pressure | temp usage and large sorts |
+| high physical reads but low logical reads | possible cold cache or direct reads | AWR deltas and SQL by reads |
+| high logical reads | SQL doing too much work | SQL by gets and plan |
+
+Trainer warning:
+
+```text
+Do not say "increase SGA" just because there are physical reads.
+Find the SQL and the access path first.
+```
+
+---
+
+# Practical Investigation Order
+
+Use this order in class:
+
+```text
+1. Check top wait events
+2. Check physical read counters
+3. Find SQL with disk reads
+4. Check PGA and temp usage
+5. Inspect SGA only as context
+6. Go back to the SQL plan
+```
+
+Reason:
+
+```text
+Most memory/I/O tuning decisions are really SQL access-path decisions.
+```
+
+---
+
 # Step 1 - Top Wait Events
 
 ```sql
@@ -1510,6 +1996,63 @@ Do not tune memory only from this output. Use it as context with AWR, ADDM, wait
 | PGA stats | | sort/hash pressure | temp usage |
 | Temp usage | | active spill | SQL_ID |
 | SGA info | | memory context | ADDM/memory advisors |
+
+---
+
+# Beginner-Friendly Interpretation Examples
+
+Example 1:
+
+```text
+Top wait = db file scattered read
+SQL by disk reads = monthly branch report
+Plan = TABLE ACCESS FULL TRANSACTIONS
+```
+
+Good conclusion:
+
+```text
+This is likely a report-driven full scan. Check whether the report needs an index, materialized view, partition pruning, or a reporting copy.
+```
+
+Bad conclusion:
+
+```text
+Storage is slow.
+```
+
+Why bad:
+
+```text
+The waits are a symptom. The SQL may be asking storage to read too much.
+```
+
+Example 2:
+
+```text
+Temp usage exists
+SQL_ID belongs to a GROUP BY query
+Plan shows HASH GROUP BY or SORT ORDER BY with high temp
+```
+
+Good conclusion:
+
+```text
+The SQL is spilling work to TEMP. Check row volume, grouping columns, PGA pressure, and whether a summary table or MV is better.
+```
+
+Example 3:
+
+```text
+PGA cache hit is low
+v$tempseg_usage shows no active rows
+```
+
+Good conclusion:
+
+```text
+There is no active temp spill at this exact moment. Use AWR/ASH for the incident window before changing PGA.
+```
 
 ---
 
