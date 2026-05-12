@@ -2,6 +2,40 @@
 
 Copy/paste these commands during Day 2 demos and labs.
 
+For low-memory environments, use this mock-report lab as the primary Day 2 activity:
+
+```text
+02-Day/MOCK-REPORT-INTERPRETATION-LAB.md
+```
+
+Mock report files:
+
+```text
+02-Day/mock-reports/awr_day2_mock_incident.txt
+02-Day/mock-reports/addm_day2_mock_incident.txt
+02-Day/mock-reports/sql_tuning_advisor_day2_mock.txt
+```
+
+For a stronger live workload environment, use this runbook as the primary command source:
+
+```text
+02-Day/REAL-WORLD-INCIDENT-LAB.md
+```
+
+It covers:
+
+```text
+large incident data
+quality AWR snapshots
+production-like workload
+AWR/ASH pain-point discovery
+ADDM report generation
+SQL Tuning Advisor on the real SQL_ID
+invisible-index before/after validation
+```
+
+Use the smaller commands below as fallback or quick demos.
+
 ---
 
 ## Day 2 Morning - AWR And ADDM
@@ -208,6 +242,57 @@ FROM TABLE(
     'ALLSTATS LAST +PREDICATE'
   )
 );
+```
+
+### Command ID: 0040A - ASH wait-class summary for the live window
+
+```sql
+SELECT NVL(wait_class,'CPU') AS wait_class,
+       COUNT(*) AS ash_samples
+FROM v$active_session_history
+WHERE sample_time >= SYSDATE - (30/1440)
+GROUP BY NVL(wait_class,'CPU')
+ORDER BY ash_samples DESC;
+```
+
+### Command ID: 0040B - ASH by SQL ID and event
+
+```sql
+SELECT sql_id,
+       NVL(wait_class,'CPU') AS wait_class,
+       NVL(event,'ON CPU') AS event,
+       COUNT(*) AS ash_samples
+FROM v$active_session_history
+WHERE sample_time >= SYSDATE - (30/1440)
+AND sql_id IS NOT NULL
+GROUP BY sql_id,
+         NVL(wait_class,'CPU'),
+         NVL(event,'ON CPU')
+ORDER BY ash_samples DESC
+FETCH FIRST 10 ROWS ONLY;
+```
+
+### Command ID: 0040C - Historical ASH for the AWR snapshot window
+
+```sql
+SELECT h.sql_id,
+       NVL(h.wait_class,'CPU') AS wait_class,
+       NVL(h.event,'ON CPU') AS event,
+       COUNT(*) AS ash_samples
+FROM dba_hist_active_sess_history h
+JOIN dba_hist_snapshot s
+  ON h.dbid = s.dbid
+ AND h.instance_number = s.instance_number
+ AND h.snap_id = s.snap_id
+WHERE h.dbid = &dbid
+AND h.instance_number = &inst_num
+AND h.snap_id BETWEEN &begin_snap AND &end_snap
+AND h.sql_id IS NOT NULL
+GROUP BY h.sql_id,
+         NVL(h.wait_class,'CPU'),
+         NVL(h.event,'ON CPU')
+ORDER BY ash_samples DESC
+FETCH FIRST 10 ROWS ONLY;
 ```
 
 ---
@@ -498,6 +583,85 @@ SELECT branch_id,
        SUM(amount) AS total_amount
 FROM transactions
 GROUP BY branch_id, TRUNC(transaction_date);
+```
+
+### Command ID: 0054A - Manual invisible-index before/after test
+
+```sql
+ALTER SESSION SET statistics_level = ALL;
+
+SELECT /* access_before_loan_due */
+       COUNT(*)
+FROM (
+  SELECT branch_id,
+         COUNT(*) AS due_count,
+         SUM(emi_amount) AS total_due
+  FROM loan_payments
+  WHERE status IN ('DUE','OVERDUE')
+  AND due_date <= SYSDATE
+  GROUP BY branch_id
+  ORDER BY total_due DESC
+);
+
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    NULL,
+    NULL,
+    'ALLSTATS LAST +PREDICATE'
+  )
+);
+
+CREATE INDEX idx_lp_status_due_branch_inv
+ON loan_payments(status, due_date, branch_id)
+INVISIBLE;
+
+BEGIN
+  DBMS_STATS.GATHER_INDEX_STATS(USER, 'IDX_LP_STATUS_DUE_BRANCH_INV');
+END;
+/
+
+ALTER SESSION SET optimizer_use_invisible_indexes = TRUE;
+
+SELECT /* access_after_loan_due */
+       COUNT(*)
+FROM (
+  SELECT branch_id,
+         COUNT(*) AS due_count,
+         SUM(emi_amount) AS total_due
+  FROM loan_payments
+  WHERE status IN ('DUE','OVERDUE')
+  AND due_date <= SYSDATE
+  GROUP BY branch_id
+  ORDER BY total_due DESC
+);
+
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    NULL,
+    NULL,
+    'ALLSTATS LAST +PREDICATE'
+  )
+);
+
+ALTER SESSION SET optimizer_use_invisible_indexes = FALSE;
+DROP INDEX idx_lp_status_due_branch_inv;
+```
+
+### Command ID: 0054B - Compare materialized-view demo metrics in `V$SQL`
+
+```sql
+SELECT sql_id,
+       executions,
+       ROUND(elapsed_time/1000000,2) elapsed_sec,
+       buffer_gets,
+       disk_reads,
+       SUBSTR(sql_text,1,80) sql_text
+FROM v$sql
+WHERE sql_text LIKE '%mv_demo_%'
+AND sql_text NOT LIKE '%v$sql%'
+ORDER BY last_active_time DESC;
 ```
 
 ### Command ID: 0055 - Memory and I/O symptom queries

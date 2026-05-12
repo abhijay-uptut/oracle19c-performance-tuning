@@ -50,6 +50,7 @@ NOT:
 | 9:25 - 9:45   | Lab setup and workload tagging               |
 | 9:45 - 10:10  | Live lab: create AWR workload window         |
 | 10:10 - 10:30 | Read AWR using a DBA workflow                |
+| 10:30 - 10:45 | Optional ASH wait-class confidence drill     |
 | 10:45 - 11:00 | ADDM mental model                            |
 | 11:00 - 11:25 | Live lab: generate ADDM for same window      |
 | 11:25 - 11:50 | Interpret ADDM findings and validate them    |
@@ -72,6 +73,7 @@ Typical privileges or access needed:
 
 ```text
 SELECT_CATALOG_ROLE or access to DBA_HIST_* views
+access to V$ACTIVE_SESSION_HISTORY / DBA_HIST_ACTIVE_SESS_HISTORY for ASH drills
 EXECUTE on DBMS_WORKLOAD_REPOSITORY
 permission to run $ORACLE_HOME/rdbms/admin/awrrpt.sql
 permission to run $ORACLE_HOME/rdbms/admin/addmrpt.sql
@@ -144,7 +146,7 @@ But the DBA still validates everything."
 
 # SLOT 1 - AWR: AUTOMATIC WORKLOAD REPOSITORY
 
-## 9:00 AM - 10:30 AM
+## 9:00 AM - 10:30 AM core, 10:30 - 10:45 optional ASH bridge
 
 # SECTION 1 - AWR MENTAL MODEL (9:10 - 9:25)
 
@@ -262,12 +264,38 @@ That sequence prevents shallow conclusions."
 
 We will:
 
-1. create a start AWR snapshot
-2. run tagged workload
-3. create an end AWR snapshot
-4. generate an AWR report
-5. identify top SQL and waits
-6. connect AWR evidence to Day 1 plan skills
+1. interpret a production-style AWR incident report
+2. identify top waits, top SQL, reads, gets, and hot segments
+3. map AWR evidence to ADDM findings
+4. use SQL Tuning Advisor output for the same SQL_ID
+5. decide the tuning action using before/after evidence
+6. explain the production risk and rollback plan
+
+Primary low-memory hands-on runbook:
+
+```text
+02-Day/MOCK-REPORT-INTERPRETATION-LAB.md
+```
+
+Mock evidence files:
+
+```text
+02-Day/mock-reports/awr_day2_mock_incident.txt
+02-Day/mock-reports/addm_day2_mock_incident.txt
+02-Day/mock-reports/sql_tuning_advisor_day2_mock.txt
+```
+
+Full live workload runbook, only if the environment can handle it:
+
+```text
+02-Day/REAL-WORLD-INCIDENT-LAB.md
+```
+
+Trainer note:
+
+If the VM cannot handle 200k+ rows or AWR privileges are unreliable, do not waste class time fighting the environment. Use the mock report lab as the main activity. It teaches the real skill: interpreting AWR, validating ADDM, reading SQL Tuning Advisor, and making a production-safe recommendation.
+
+Use the smaller live workload below only as a quick demo or fallback.
 
 ---
 
@@ -778,6 +806,146 @@ Participants fill this from `awr_day2_morning.txt`:
 
 ---
 
+# Confidence Booster - ASH Wait-Class Drill
+
+Use this after the AWR evidence table if the class can spare the time, or if trainees ask:
+
+```text
+Which wait class was the problem?
+Which SQL was waiting?
+Was it CPU, User I/O, Commit, or Application wait?
+```
+
+This is especially useful because AWR shows the report window, while ASH helps explain active sessions inside that window.
+
+Trainer timing:
+
+```text
+Recommended: 10:30 - 10:45
+If time is tight: run only Step 1 and Step 2
+```
+
+## Step 1 - Current ASH Wait-Class Summary
+
+```sql
+SELECT NVL(wait_class,'CPU') AS wait_class,
+       COUNT(*) AS ash_samples
+FROM v$active_session_history
+WHERE sample_time >= SYSDATE - (30/1440)
+GROUP BY NVL(wait_class,'CPU')
+ORDER BY ash_samples DESC;
+```
+
+Interpretation:
+
+| Wait Class | First Meaning | Next Check |
+| ---------- | ------------- | ---------- |
+| CPU | sessions were active on CPU | SQL by CPU, plan, executions |
+| User I/O | sessions waited for datafile reads | SQL by Reads, full scans/index lookups |
+| Commit | sessions waited for commit acknowledgment | commit frequency, redo/log latency |
+| Application | application-level waits, often locks | blocker/session details |
+| Concurrency | internal concurrency or buffer contention | object/session evidence |
+
+---
+
+## Step 2 - ASH By SQL ID And Event
+
+```sql
+SELECT sql_id,
+       NVL(wait_class,'CPU') AS wait_class,
+       NVL(event,'ON CPU') AS event,
+       COUNT(*) AS ash_samples
+FROM v$active_session_history
+WHERE sample_time >= SYSDATE - (30/1440)
+AND sql_id IS NOT NULL
+GROUP BY sql_id,
+         NVL(wait_class,'CPU'),
+         NVL(event,'ON CPU')
+ORDER BY ash_samples DESC
+FETCH FIRST 10 ROWS ONLY;
+```
+
+Ask trainees:
+
+* Which SQL_ID appears most often?
+* Is it mostly CPU or waiting?
+* Does this SQL also appear in AWR top SQL?
+* What plan evidence do we need next?
+
+---
+
+## Step 3 - Historical ASH For AWR Snapshot Window
+
+Use this after the AWR snapshot window is created.
+
+```sql
+SELECT h.sql_id,
+       NVL(h.wait_class,'CPU') AS wait_class,
+       NVL(h.event,'ON CPU') AS event,
+       COUNT(*) AS ash_samples
+FROM dba_hist_active_sess_history h
+JOIN dba_hist_snapshot s
+  ON h.dbid = s.dbid
+ AND h.instance_number = s.instance_number
+ AND h.snap_id = s.snap_id
+WHERE h.dbid = &dbid
+AND h.instance_number = &inst_num
+AND h.snap_id BETWEEN &begin_snap AND &end_snap
+AND h.sql_id IS NOT NULL
+GROUP BY h.sql_id,
+         NVL(h.wait_class,'CPU'),
+         NVL(h.event,'ON CPU')
+ORDER BY ash_samples DESC
+FETCH FIRST 10 ROWS ONLY;
+```
+
+If `DBA_HIST_ACTIVE_SESS_HISTORY` is unavailable:
+
+```text
+Use V$ACTIVE_SESSION_HISTORY for the live class window.
+Explain that historical ASH access may require Diagnostic Pack privileges.
+```
+
+---
+
+# Guided Answer Key - AWR Interpretation
+
+Use this after participants complete the AWR evidence table.
+
+The exact numbers will vary by machine. The correct learning outcome is the reasoning pattern.
+
+| Evidence | Expected Class Finding | Correct Interpretation |
+| -------- | ---------------------- | ---------------------- |
+| DB Time | higher during lab window than quiet periods | workload was visible in the report |
+| Top Timed Events | CPU, User I/O, direct path read, db file scattered read, or log file sync may appear | identify direction, not final root cause |
+| SQL by Elapsed | one or more `awr_day2_%` SQL statements | tagged workload was captured |
+| SQL by Gets | full scan or function-based workload likely appears | logical read pressure points to access path review |
+| SQL by Reads | transaction scan or sort query may appear | inspect plan and segment evidence |
+| Segment Stats | `TRANSACTIONS`, `CUSTOMERS`, or `ACCOUNTS` may be hot | object evidence supports SQL evidence |
+
+Strong trainee answer:
+
+```text
+The top wait/SQL suggests the issue is caused by the tagged workload.
+The next step is not to guess a fix.
+The next step is to inspect the SQL_ID plan with DBMS_XPLAN and compare predicates, rows, buffers, and reads.
+```
+
+Weak trainee answer to correct:
+
+```text
+AWR shows I/O, so storage is slow.
+```
+
+Trainer correction:
+
+```text
+I/O waits may be caused by bad SQL reading too much.
+First identify the SQL and plan before blaming storage.
+```
+
+---
+
 # Slide 11 - Connect AWR To Day 1
 
 ## Slide Content
@@ -1125,6 +1293,34 @@ Participants fill this from `addm_day2_morning.txt`:
 | Is the recommendation safe directly? | |
 | What validation is needed? | |
 | What Day 1 skill applies next? | |
+
+---
+
+# Guided Answer Key - ADDM Interpretation
+
+Use this after participants complete the ADDM evidence table.
+
+| ADDM Finding Type | What Trainees Should Say | Validation Evidence |
+| ----------------- | ------------------------ | ------------------- |
+| High-load SQL | one or more SQL statements consumed significant DB time | AWR SQL by Elapsed/CPU/Gets and DBMS_XPLAN |
+| I/O throughput or reads | the database spent time reading blocks | SQL by Reads, Segment Statistics, execution plan |
+| Commit latency | sessions waited for commit acknowledgement | `log file sync`, commit workload, application transaction design |
+| Memory pressure | sorts/hash joins/parsing may be causing pressure | PGA stats, temp usage, SQL plans, ADDM memory advice |
+| No significant finding | workload was too short or not intense enough | rerun with larger loop count or explain that no-finding is valid evidence |
+
+Strong trainee answer:
+
+```text
+ADDM recommends an investigation direction.
+Before applying the recommendation, I need to confirm the same SQL/wait/object in AWR and inspect the execution plan or system evidence.
+```
+
+Trainer reminder:
+
+```text
+ADDM impact percentage helps prioritize.
+It does not approve the change.
+```
 
 ---
 

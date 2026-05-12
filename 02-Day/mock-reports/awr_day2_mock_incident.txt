@@ -1,0 +1,165 @@
+WORKLOAD REPOSITORY REPORT - MOCK TRAINING REPORT
+
+DB Name         DB Id        Instance     Inst Num Startup Time
+-------------- ------------ ------------ -------- ----------------
+BANK19C        3849217661   bank19c1            1 12-May-26 08:10
+
+Host Name        Platform                         CPUs Cores Sockets Memory
+---------------- -------------------------------- ---- ----- ------- -------
+train-vm-01      Linux x86 64-bit                    4     4       1   12.0G
+
+Snapshot       Snap Id      Snap Time            Sessions Cursors/Session
+------------- ------------ -------------------- -------- ----------------
+Begin Snap          14801   12-May-26 10:45:03       42             4.8
+End Snap            14802   12-May-26 11:15:18       47             5.1
+Elapsed:                    30.25 minutes
+DB Time:                     74.80 minutes
+
+Cache Sizes
+~~~~~~~~~~~
+Buffer Cache:       2,048M     Shared Pool:        768M
+Log Buffer:            16M     PGA Aggregate:    1,024M
+
+Load Profile              Per Second    Per Transaction
+~~~~~~~~~~~~~~~~~~~~~     ----------    ---------------
+DB Time(s):                     2.47               0.44
+DB CPU(s):                      0.61               0.11
+Redo size:                584,912.30         104,088.81
+Logical reads:            58,934.42          10,486.70
+Block changes:             1,840.25             327.45
+Physical reads:            3,418.88             608.41
+Physical writes:             396.14              70.48
+User calls:                  328.55              58.47
+Parses:                       46.13               8.21
+Hard parses:                   0.42               0.07
+Executes:                    711.19             126.57
+Transactions:                  5.62
+
+Instance Efficiency Percentages
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Buffer Nowait %:            99.97     Redo NoWait %:              99.98
+Buffer Hit %:               94.20     In-memory Sort %:           88.41
+Library Hit %:              99.12     Soft Parse %:               99.09
+Execute to Parse %:         93.51     Latch Hit %:                99.82
+Parse CPU to Parse Elapsd %: 72.50
+
+Top 10 Foreground Events by Total Wait Time
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Event                                Waits    Total Wait Time(s) Avg wait(ms) % DB time Wait Class
+-------------------------------- ---------- ------------------- ------------ --------- ----------
+db file scattered read             294,118              1,573.2          5.3      35.0 User I/O
+DB CPU                                                   1,096.5                  24.4
+direct path read temp               42,773                638.7         14.9      14.2 User I/O
+log file sync                       88,510                417.4          4.7       9.3 Commit
+db file sequential read            126,009                359.1          2.9       8.0 User I/O
+direct path write temp              18,442                151.8          8.2       3.4 User I/O
+enq: TX - row lock contention          126                 58.5        464.3       1.3 Application
+log file parallel write             38,219                 43.7          1.1       1.0 System I/O
+cursor: pin S wait on X                 42                 17.9        426.2       0.4 Concurrency
+control file sequential read         5,112                  9.8          1.9       0.2 System I/O
+
+Host CPU
+~~~~~~~~
+Load Average Begin: 1.9  End: 3.4
+User: 52.1%   System: 10.9%   WIO: 18.7%   Idle: 18.3%
+
+Time Model Statistics
+~~~~~~~~~~~~~~~~~~~~~
+Statistic Name                                      Time (s) % of DB Time
+------------------------------------------------ ---------- ------------
+sql execute elapsed time                             4,098.8         91.3
+DB CPU                                               1,096.5         24.4
+parse time elapsed                                      44.8          1.0
+hard parse elapsed time                                  7.2          0.2
+PL/SQL execution elapsed time                           92.5          2.1
+connection management call elapsed time                 11.9          0.3
+
+SQL ordered by Elapsed Time
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Elapsed      CPU      IO Wait  Executions  Elap/Exec  %Total  SQL Id        SQL Module
+Time(s)   Time(s)     Time(s)              (s)         DB Time
+-------- -------- ----------- ---------- ---------- -------- ------------- --------------------------
+1,421.8    487.2       801.6        720       1.97     31.7 g8m1s9k2p6z0a DAY2_INCIDENT_BANKING_APP
+  760.4    261.9       429.7         94       8.09     17.0 91hdq2n5b7r4c DAY2_INCIDENT_BANKING_APP
+  336.9    209.4        98.1        310       1.09      7.5 b6vw9k3a2p1mz DAY2_INCIDENT_BANKING_APP
+  211.6     38.8         7.4     88,510       0.00      4.7 f7pxw0tq8m3v1 DAY2_INCIDENT_BANKING_APP
+  158.3     92.6        48.9      1,820       0.09      3.5 3t5n1y8rddq4s JDBC Thin Client
+
+SQL ordered by CPU Time
+~~~~~~~~~~~~~~~~~~~~~~~
+CPU      Elapsed  Executions  CPU/Exec  %Total  SQL Id        SQL Text
+Time(s)  Time(s)             (s)        DB CPU
+-------- -------- ---------- --------- ------- ------------- ----------------------------------------
+  487.2  1,421.8        720      0.68    44.4 g8m1s9k2p6z0a SELECT /* day2_incident_customer_statement */ COUNT(*)
+  261.9    760.4         94      2.79    23.9 91hdq2n5b7r4c SELECT /* day2_incident_branch_dashboard */ COUNT(*)
+  209.4    336.9        310      0.68    19.1 b6vw9k3a2p1mz SELECT /* day2_incident_reference_search */ COUNT(*)
+   38.8    211.6     88,510      0.00     3.5 f7pxw0tq8m3v1 INSERT /* day2_incident_transfer_commit */ INTO day2_transfer_log
+
+SQL ordered by Gets
+~~~~~~~~~~~~~~~~~~~
+Buffer Gets  Executions  Gets/Exec  %Total  SQL Id        SQL Text
+----------- ---------- ---------- ------- ------------- ----------------------------------------------
+ 92,184,221        720    128,034    86.9 g8m1s9k2p6z0a SELECT /* day2_incident_customer_statement */ COUNT(*)
+  8,640,118         94     91,916     8.1 91hdq2n5b7r4c SELECT /* day2_incident_branch_dashboard */ COUNT(*)
+  3,912,440        310     12,621     3.7 b6vw9k3a2p1mz SELECT /* day2_incident_reference_search */ COUNT(*)
+    502,871     88,510          6     0.5 f7pxw0tq8m3v1 INSERT /* day2_incident_transfer_commit */ INTO day2_transfer_log
+
+SQL ordered by Reads
+~~~~~~~~~~~~~~~~~~~~
+Physical Reads Executions Reads/Exec  %Total  SQL Id        SQL Text
+-------------- ---------- ---------- ------- ------------- -------------------------------------------
+     4,812,930        720      6,685    78.2 g8m1s9k2p6z0a SELECT /* day2_incident_customer_statement */ COUNT(*)
+       891,442         94      9,483    14.5 91hdq2n5b7r4c SELECT /* day2_incident_branch_dashboard */ COUNT(*)
+       286,110        310        923     4.6 b6vw9k3a2p1mz SELECT /* day2_incident_reference_search */ COUNT(*)
+        18,994     88,510          0     0.3 f7pxw0tq8m3v1 INSERT /* day2_incident_transfer_commit */ INTO day2_transfer_log
+
+SQL ordered by Executions
+~~~~~~~~~~~~~~~~~~~~~~~~~
+Executions Rows Processed Rows/Exec SQL Id        SQL Text
+---------- -------------- --------- ------------- ---------------------------------------------
+    88,510         88,510       1.0 f7pxw0tq8m3v1 INSERT /* day2_incident_transfer_commit */ INTO day2_transfer_log
+       720        144,000     200.0 g8m1s9k2p6z0a SELECT /* day2_incident_customer_statement */ COUNT(*)
+       310             31       0.1 b6vw9k3a2p1mz SELECT /* day2_incident_reference_search */ COUNT(*)
+        94          7,520      80.0 91hdq2n5b7r4c SELECT /* day2_incident_branch_dashboard */ COUNT(*)
+
+SQL Text For Top SQL
+~~~~~~~~~~~~~~~~~~~~
+SQL ID: g8m1s9k2p6z0a
+SELECT /* day2_incident_customer_statement */ COUNT(*)
+FROM (
+  SELECT transaction_id, txn_ts, amount, status, channel
+  FROM day2_txn_big
+  WHERE customer_id = :B1
+  AND txn_ts >= ADD_MONTHS(SYSDATE,-18)
+  ORDER BY txn_ts DESC
+  FETCH FIRST 200 ROWS ONLY
+)
+
+SQL ID: 91hdq2n5b7r4c
+SELECT /* day2_incident_branch_dashboard */ COUNT(*)
+FROM (
+  SELECT branch_id, status, COUNT(*) txn_count, SUM(amount) total_amount
+  FROM day2_txn_big
+  WHERE txn_ts >= ADD_MONTHS(SYSDATE,-6)
+  GROUP BY branch_id, status
+  ORDER BY total_amount DESC
+)
+
+Segment Statistics
+~~~~~~~~~~~~~~~~~~
+Owner      Object Name              Subobject Obj. Type  Statistic Name          Value
+---------- ------------------------ --------- ---------- --------------------- ------------
+ABHIJAY    DAY2_TXN_BIG                       TABLE      logical reads          105,431,882
+ABHIJAY    DAY2_TXN_BIG                       TABLE      physical reads           5,992,881
+ABHIJAY    DAY2_TXN_BIG                       TABLE      db block changes           832,014
+ABHIJAY    IDX_DAY2_TXN_BRANCH_DATE           INDEX      logical reads            6,224,719
+ABHIJAY    DAY2_TRANSFER_LOG                  TABLE      db block changes           177,020
+
+Advisory Notes For Training
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This is a mock report. It is intentionally designed so trainees can practice:
+1. confirming the report window
+2. comparing DB Time to elapsed time
+3. reading top waits before top SQL
+4. finding the same SQL in elapsed, gets, and reads sections
+5. deciding whether the root issue is storage, SQL design, commit frequency, or all of them

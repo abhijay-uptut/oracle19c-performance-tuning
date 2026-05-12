@@ -1,0 +1,128 @@
+SQL Tuning Advisor Report - MOCK TRAINING REPORT
+
+Task Name  : DAY2_REAL_INCIDENT_TUNE
+Owner      : ABHIJAY
+SQL ID     : g8m1s9k2p6z0a
+Scope      : COMPREHENSIVE
+Time Limit : 90 seconds
+
+SQL Text
+~~~~~~~~
+SELECT /* day2_incident_customer_statement */ COUNT(*)
+FROM (
+  SELECT transaction_id, txn_ts, amount, status, channel
+  FROM day2_txn_big
+  WHERE customer_id = :B1
+  AND txn_ts >= ADD_MONTHS(SYSDATE,-18)
+  ORDER BY txn_ts DESC
+  FETCH FIRST 200 ROWS ONLY
+)
+
+Findings
+~~~~~~~~
+
+Finding 1: Index Finding
+Impact: 91.4% estimated benefit
+
+The optimizer estimates that creating the following index will significantly
+improve this statement.
+
+Recommendation:
+
+CREATE INDEX ABHIJAY.IDX_DAY2_TXN_STMT_FIX
+ON ABHIJAY.DAY2_TXN_BIG("CUSTOMER_ID","TXN_TS" DESC);
+
+Rationale:
+The query filters by CUSTOMER_ID and TXN_TS, then orders by TXN_TS descending.
+The current index on BRANCH_ID, TXN_TS does not support this access pattern.
+The recommended index allows Oracle to find one customer's recent transactions
+without scanning a large part of DAY2_TXN_BIG.
+
+Validation:
+Do not create the index directly in production.
+Create it as invisible in a test session, gather stats, enable invisible indexes
+for that session, and compare before/after metrics.
+
+---
+
+Finding 2: Alternative Plan Analysis
+
+The original plan used a high-read access path.
+
+Original plan summary:
+
+Plan hash value: 1849201442
+
+Id  Operation                Name          E-Rows A-Rows Buffers Reads
+--  -----------------------  ------------ ------ ------ ------- ------
+ 0  SELECT STATEMENT                              1      1  128034  6685
+ 1   SORT ORDER BY STOPKEY                     200    200  128034  6685
+ 2    TABLE ACCESS FULL       DAY2_TXN_BIG     150    365  128034  6685
+
+Predicate Information:
+2 - filter("CUSTOMER_ID"=:B1 AND "TXN_TS">=ADD_MONTHS(SYSDATE@!,-18))
+
+Potential improved plan:
+
+Plan hash value: 2651038841
+
+Id  Operation                             Name                       E-Rows A-Rows Buffers Reads
+--  ------------------------------------  ------------------------- ------ ------ ------- -----
+ 0  SELECT STATEMENT                                                   1      1     412     14
+ 1   SORT AGGREGATE                                                    1      1     412     14
+ 2    VIEW                                                           200    200     412     14
+ 3     COUNT STOPKEY                                                 200    200     412     14
+ 4      TABLE ACCESS BY INDEX ROWID    DAY2_TXN_BIG                  200    200     412     14
+ 5       INDEX RANGE SCAN DESCENDING  IDX_DAY2_TXN_STMT_FIX          200    200      18      2
+
+---
+
+Finding 3: Statistics Finding
+Impact: low
+
+Object statistics exist for DAY2_TXN_BIG and the current index.
+No major table statistics problem was detected.
+
+Recommendation:
+Gather index statistics after creating any test index.
+
+Command:
+
+BEGIN
+  DBMS_STATS.GATHER_INDEX_STATS(USER, 'IDX_DAY2_TXN_STMT_FIX_INV');
+END;
+/
+
+---
+
+Before / After Validation Table
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Metric                       Before       After Test     Improvement
+--------------------------- ------------ -------------- ------------
+Elapsed time per execution   1.97 sec     0.04 sec       strong
+Buffer gets per execution    128,034      412            strong
+Physical reads per execution 6,685        14             strong
+Access path                  FULL SCAN    INDEX RANGE    strong
+Sort                         STOPKEY SORT INDEX ORDER    improved
+
+Production Risk
+~~~~~~~~~~~~~~~
+This index may add DML cost on DAY2_TXN_BIG.
+Before production deployment, validate:
+
+1. insert/update/delete overhead
+2. index storage size
+3. duplicate index risk
+4. plan impact for other high-load SQL
+5. rollback command
+6. change window approval
+
+Rollback:
+
+DROP INDEX ABHIJAY.IDX_DAY2_TXN_STMT_FIX;
+
+Training Conclusion
+~~~~~~~~~~~~~~~~~~~
+SQL Tuning Advisor suggests a candidate fix.
+The DBA proves the fix with before/after plan and metrics.

@@ -1,0 +1,132 @@
+ADDM Report for Task 'TASK_14801_14802' - MOCK TRAINING REPORT
+
+Database: BANK19C
+Instance: bank19c1
+Analysis Period: 12-May-26 10:45:03 to 12-May-26 11:15:18
+Database Time: 74.8 minutes
+
+Summary
+~~~~~~~
+ADDM found 3 major findings.
+
+Findings ordered by estimated impact:
+
+1. High-load SQL statements consumed significant database time.
+2. User I/O waits were significant during the analysis period.
+3. Commit latency was visible due to frequent small transactions.
+
+Findings
+~~~~~~~~
+
+Finding 1: High-load SQL statements
+Impact: 50.7 minutes, 67.8% of database time
+
+SQL statements were consuming significant database time. The statement with
+SQL_ID "g8m1s9k2p6z0a" was responsible for the largest share of DB time.
+
+Related SQL:
+
+SQL ID: g8m1s9k2p6z0a
+Module: DAY2_INCIDENT_BANKING_APP
+Action: CUSTOMER_STATEMENT
+
+SELECT /* day2_incident_customer_statement */ COUNT(*)
+FROM (
+  SELECT transaction_id, txn_ts, amount, status, channel
+  FROM day2_txn_big
+  WHERE customer_id = :B1
+  AND txn_ts >= ADD_MONTHS(SYSDATE,-18)
+  ORDER BY txn_ts DESC
+  FETCH FIRST 200 ROWS ONLY
+)
+
+Recommendation 1:
+Run SQL Tuning Advisor on SQL_ID "g8m1s9k2p6z0a".
+
+Rationale:
+The SQL performs many logical and physical reads per execution. The access path
+does not efficiently support the customer statement predicate and ordering.
+
+Expected Benefit:
+Up to 43.1% of database time may be improved if the SQL access path is corrected.
+
+Validation Required:
+Confirm the SQL appears in AWR SQL ordered by Elapsed Time, Gets, and Reads.
+Inspect the runtime plan using DBMS_XPLAN.DISPLAY_CURSOR.
+
+---
+
+Finding 2: User I/O waits
+Impact: 23.8 minutes, 31.8% of database time
+
+The database spent significant time waiting for datafile reads.
+
+Major events:
+
+Event                  Wait Class  Impact
+---------------------  ----------  ------
+db file scattered read User I/O    35.0% DB time
+direct path read temp  User I/O    14.2% DB time
+db file sequential read User I/O    8.0% DB time
+
+Recommendation 1:
+Investigate SQL statements responsible for the largest physical reads.
+
+Related SQL:
+g8m1s9k2p6z0a
+91hdq2n5b7r4c
+
+Rationale:
+I/O waits are likely caused by SQL reading too much data. Do not blame storage
+before validating SQL access paths and segment statistics.
+
+Validation Required:
+Use AWR SQL ordered by Reads and Segment Statistics.
+Use DBMS_XPLAN to check full scans, range scans, temp sorts, and predicates.
+
+---
+
+Finding 3: Commit latency from frequent commits
+Impact: 6.9 minutes, 9.3% of database time
+
+Commit processing consumed visible database time.
+
+Related event:
+log file sync
+
+Related SQL:
+SQL_ID "f7pxw0tq8m3v1"
+
+INSERT /* day2_incident_transfer_commit */ INTO day2_transfer_log ...
+
+Recommendation 1:
+Review application transaction design and commit frequency.
+
+Rationale:
+The transfer logging workload committed 88,510 times during a 30-minute window.
+Frequent small commits can create log file sync waits.
+
+Validation Required:
+Check whether each commit is required by business logic. If batching is allowed,
+test fewer commits per unit of work. Do not change commit behavior without
+application owner approval.
+
+---
+
+Overall ADDM Recommendation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Priority 1:
+Tune SQL_ID g8m1s9k2p6z0a using SQL Tuning Advisor and plan validation.
+
+Priority 2:
+Check whether branch dashboard SQL_ID 91hdq2n5b7r4c needs a reporting summary
+table or materialized view.
+
+Priority 3:
+Review frequent commit behavior for transfer logging.
+
+Training Reminder
+~~~~~~~~~~~~~~~~~
+ADDM gives direction and priority. It does not approve a production change.
+The DBA must validate with AWR, SQL plan evidence, before/after metrics, and
+rollback planning.

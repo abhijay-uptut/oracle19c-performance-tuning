@@ -53,8 +53,9 @@ NOT:
 | 2:45 - 3:05   | SQL Access Advisor and workload thinking     |
 | 3:05 - 3:45   | Lab 8: workload access design                |
 | 3:45 - 4:20   | SQL Access Advisor practical path            |
-| 4:20 - 4:50   | Memory and I/O diagnosis mini-lab            |
-| 4:50 - 5:00   | Day 2 close and Day 3 transition             |
+| 4:20 - 4:40   | Memory and I/O diagnosis mini-lab            |
+| 4:40 - 4:55   | End-to-end Day 2 capstone                    |
+| 4:55 - 5:00   | Day 2 close and Day 3 transition             |
 
 ---
 
@@ -133,10 +134,38 @@ If a table is missing, run `01-Day/SECOND.md` setup first.
 
 ## Slide Content
 
-Use SQL Tuning Advisor after evidence points to one SQL:
+Use SQL Tuning Advisor after AWR/ASH/ADDM evidence points to one SQL.
+
+For the low-memory Day 2 flow, use the SQL_ID and recommendation from:
+
+```text
+02-Day/MOCK-REPORT-INTERPRETATION-LAB.md
+02-Day/mock-reports/sql_tuning_advisor_day2_mock.txt
+```
+
+Mock target SQL_ID:
+
+```text
+g8m1s9k2p6z0a
+```
+
+For a live workload flow, use the SQL_ID selected in:
+
+```text
+02-Day/REAL-WORLD-INCIDENT-LAB.md
+```
+
+The target variable from that lab is:
+
+```text
+&&incident_sql_id
+```
+
+Advisor flow:
 
 ```text
 AWR identifies top SQL
+  -> ASH confirms wait class / event / SQL_ID pressure
   -> ADDM recommends SQL tuning
   -> DBA captures current plan and metrics
   -> SQL Tuning Advisor analyzes SQL
@@ -155,6 +184,10 @@ It is useful when AWR or ADDM has already pointed us to a specific SQL.
 The advisor may suggest a SQL Profile, index, statistics gathering, or SQL rewrite.
 
 But the DBA must prove the recommendation is safe."
+
+Trainer note:
+
+If the mock report lab is being used, teach this section by reading the mock SQL Tuning Advisor report and asking trainees to justify or reject the recommendation. If the real incident lab ran successfully, use `&&incident_sql_id` and the SQL Tuning Advisor section in `02-Day/REAL-WORLD-INCIDENT-LAB.md`. Use the standalone SQL below only as a fallback.
 
 ---
 
@@ -635,6 +668,42 @@ Then ask:
 
 ---
 
+# Guided Answer Key - SQL Tuning Advisor
+
+Use this after participants read the advisor report.
+
+The exact recommendation may vary by data, stats, and indexes. Grade the reasoning, not the exact output.
+
+| Advisor Output | Good DBA Interpretation | Required Validation |
+| -------------- | ----------------------- | ------------------- |
+| SQL Profile | optimizer may need better cardinality/selectivity guidance | test multiple bind values and confirm plan stability |
+| Index recommendation | new access path may reduce reads for this SQL | check duplicate indexes, DML cost, and other workload impact |
+| Statistics recommendation | optimizer may be using stale/missing object stats | gather in test first and check plans for important SQL |
+| SQL rewrite | query shape may be inefficient | verify result correctness and application feasibility |
+| No recommendation | advisor did not find a safe/high-benefit change | manually inspect plan, predicates, rows, and buffers |
+
+Strong trainee answer:
+
+```text
+The advisor recommendation is a candidate fix.
+I will compare before/after elapsed time, buffers, disk reads, and plan shape before accepting it.
+```
+
+Weak trainee answer to correct:
+
+```text
+SQL Tuning Advisor recommended an index, so we should create it.
+```
+
+Trainer correction:
+
+```text
+An index can speed one report and slow many inserts/updates/deletes.
+Check DML risk, duplicate indexes, and rollback plan first.
+```
+
+---
+
 # SLOT 3 SUMMARY
 
 ```text
@@ -1070,6 +1139,134 @@ Production questions:
 
 ---
 
+# Manual Index Recommendation Validation - Before/After
+
+This lab works even when SQL Access Advisor privileges are restricted.
+
+Goal:
+
+```text
+Prove or reject an index recommendation using before/after evidence.
+```
+
+## Step 1 - Capture Before Metrics
+
+```sql
+ALTER SESSION SET statistics_level = ALL;
+
+SELECT /* access_before_loan_due */
+       COUNT(*)
+FROM (
+  SELECT branch_id,
+         COUNT(*) AS due_count,
+         SUM(emi_amount) AS total_due
+  FROM loan_payments
+  WHERE status IN ('DUE','OVERDUE')
+  AND due_date <= SYSDATE
+  GROUP BY branch_id
+  ORDER BY total_due DESC
+);
+
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    NULL,
+    NULL,
+    'ALLSTATS LAST +PREDICATE'
+  )
+);
+```
+
+Record:
+
+* elapsed time
+* buffers
+* disk reads
+* access path
+* predicates
+
+---
+
+## Step 2 - Create Candidate Index As Invisible
+
+Use an invisible index so the test does not affect other sessions by default.
+
+```sql
+CREATE INDEX idx_lp_status_due_branch_inv
+ON loan_payments(status, due_date, branch_id)
+INVISIBLE;
+
+BEGIN
+  DBMS_STATS.GATHER_INDEX_STATS(USER, 'IDX_LP_STATUS_DUE_BRANCH_INV');
+END;
+/
+```
+
+Enable invisible indexes only in this session:
+
+```sql
+ALTER SESSION SET optimizer_use_invisible_indexes = TRUE;
+```
+
+---
+
+## Step 3 - Capture After Metrics
+
+```sql
+SELECT /* access_after_loan_due */
+       COUNT(*)
+FROM (
+  SELECT branch_id,
+         COUNT(*) AS due_count,
+         SUM(emi_amount) AS total_due
+  FROM loan_payments
+  WHERE status IN ('DUE','OVERDUE')
+  AND due_date <= SYSDATE
+  GROUP BY branch_id
+  ORDER BY total_due DESC
+);
+
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    NULL,
+    NULL,
+    'ALLSTATS LAST +PREDICATE'
+  )
+);
+```
+
+Compare:
+
+| Metric | Before | After | Decision |
+| ------ | ------ | ----- | -------- |
+| Elapsed time | | | |
+| Buffers | | | |
+| Disk reads | | | |
+| Access path | | | |
+| Sort/hash work | | | |
+| DML risk | | | |
+
+Decision rules:
+
+* keep testing if the index helps the report but may hurt DML
+* reject if buffers/elapsed time do not improve meaningfully
+* consider a different column order if predicates do not match the index well
+* never make it visible in production without workload testing and change approval
+
+Rollback:
+
+```sql
+ALTER SESSION SET optimizer_use_invisible_indexes = FALSE;
+DROP INDEX idx_lp_status_due_branch_inv;
+```
+
+Trainer note:
+
+This is one of the most important confidence labs of Day 2. It shows that advisor/index recommendations must be proven, not trusted blindly.
+
+---
+
 # Materialized View Demonstration - Manual Before/After
 
 This demo works without SQL Access Advisor.
@@ -1125,13 +1322,28 @@ WHERE txn_day >= ADD_MONTHS(TRUNC(SYSDATE),-1)
 GROUP BY branch_id, txn_day;
 ```
 
+Find and compare the tagged SQL metrics:
+
+```sql
+SELECT sql_id,
+       executions,
+       ROUND(elapsed_time/1000000,2) elapsed_sec,
+       buffer_gets,
+       disk_reads,
+       SUBSTR(sql_text,1,80) sql_text
+FROM v$sql
+WHERE sql_text LIKE '%mv_demo_%'
+AND sql_text NOT LIKE '%v$sql%'
+ORDER BY last_active_time DESC;
+```
+
 Trainer note:
 
 This is not automatic query rewrite training. It is a practical demonstration that reporting workloads may be better served by summary structures than repeatedly scanning transaction detail.
 
 ---
 
-# SECTION 8 - MEMORY AND I/O DIAGNOSIS MINI-LAB (4:20 - 4:50)
+# SECTION 8 - MEMORY AND I/O DIAGNOSIS MINI-LAB (4:20 - 4:40)
 
 # Slide 10 - Objective
 
@@ -1301,9 +1513,105 @@ Do not tune memory only from this output. Use it as context with AWR, ADDM, wait
 
 ---
 
-# SECTION 9 - DAY 2 CLOSING (4:50 - 5:00)
+# ORAchk / Health Check Positioning
 
-# Slide 11 - Day 2 Full Workflow
+Use this short note because trainees may ask about ORAchk or database health checks.
+
+## Slide Content
+
+```text
+ORAchk answers:
+Is the database environment configured according to known best practices?
+
+AWR/ASH/ADDM answer:
+What happened during a performance window?
+
+SQL tuning answers:
+Which SQL, plan, predicates, reads, waits, and fix options explain the slowness?
+```
+
+## Trainer Delivery
+
+"ORAchk is useful for health and configuration review.
+
+It is not a replacement for AWR, ASH, ADDM, SQL_ID analysis, or execution plans.
+
+If a user says a screen was slow at 11 AM, ORAchk may show general risks, but AWR/ASH/ADDM and SQL plans show what happened in that time window."
+
+---
+
+# SECTION 9 - END-TO-END DAY 2 CAPSTONE (4:40 - 4:55)
+
+# Slide 11 - Integrated Tuning Workflow
+
+## Slide Content
+
+```text
+Complaint
+  -> AWR window
+  -> AWR top waits and top SQL
+  -> ASH wait class / event / SQL_ID
+  -> ADDM finding
+  -> DBMS_XPLAN for the SQL_ID
+  -> SQL Tuning Advisor if one SQL is the driver
+  -> SQL Access Advisor or manual index/MV test if workload design is the driver
+  -> before/after proof
+  -> rollback and production recommendation
+```
+
+---
+
+## Capstone Scenario
+
+```text
+At 11:00 AM, customer statement and fund transfer screens were slow.
+The application team cannot provide SQL text.
+Management asks whether this is CPU, I/O, locking, commit latency, or bad SQL.
+```
+
+Participants must produce a DBA recommendation using evidence.
+
+---
+
+## Capstone Worksheet
+
+| Step | Evidence To Capture | Trainee Answer |
+| ---- | ------------------- | -------------- |
+| 1. Report window | begin/end snapshots, elapsed time, DB time | |
+| 2. Top wait direction | AWR Top Timed Events or ASH wait class | |
+| 3. Top SQL | SQL_ID from AWR/ASH | |
+| 4. Plan evidence | DBMS_XPLAN operation, predicates, buffers | |
+| 5. ADDM view | finding, impact, recommendation | |
+| 6. Advisor view | profile/index/stats/rewrite/no recommendation | |
+| 7. Before/after proof | elapsed, buffers, reads, plan shape | |
+| 8. Production caution | DML risk, license, rollback, change window | |
+| 9. Final recommendation | fix, test, or next investigation | |
+
+---
+
+## Expected Capstone Answer Pattern
+
+```text
+The evidence points to [SQL_ID / wait class / object].
+The likely cause is [bad access path / excessive reads / frequent commits / lock wait / memory spill].
+The supporting evidence is [AWR section + ASH samples + DBMS_XPLAN + ADDM finding].
+The proposed action is [test index/profile/stats/rewrite/MV/application commit change].
+Before production, we must compare before/after metrics and prepare rollback.
+```
+
+Trainer scoring:
+
+| Rating | Evidence Quality |
+| ------ | ---------------- |
+| 6/6 | connects AWR, ASH/ADDM, SQL_ID, plan, advisor output, before/after proof, and production risk |
+| 4/6 | finds top SQL or wait but cannot validate the recommendation |
+| 2/6 | jumps to a fix without evidence |
+
+---
+
+# SECTION 10 - DAY 2 CLOSING (4:55 - 5:00)
+
+# Slide 12 - Day 2 Full Workflow
 
 ## Slide Content
 
@@ -1311,6 +1619,7 @@ Do not tune memory only from this output. Use it as context with AWR, ADDM, wait
 User complaint
   -> AWR window
   -> Top waits and top SQL
+  -> ASH wait class and event evidence
   -> ADDM findings
   -> SQL Tuning Advisor for one SQL
   -> SQL Access Advisor for workload design
