@@ -1076,6 +1076,13 @@ Practical guidance:
 * for "blocking", verify with waits, ASH, and row-lock segments
 * for "new release slow", check SQL, parse, version count, dictionary cache, and library cache
 
+Real-life example:
+
+```text
+At 10:30 AM, branch users say the teller screen is slow, but internet banking looks normal.
+Use Main Report as the map: start at Report Summary to confirm the exact window, then jump to Service Statistics and Wait Events instead of reading every AWR table from top to bottom.
+```
+
 Trainer delivery:
 
 "The table of contents is not just navigation. It is the DBA checklist. Every section answers a different kind of question."
@@ -1120,6 +1127,13 @@ Use sample reports:
 * `awrrpt-bank-01-cpu-sql.html`: DB Time rises because SQL burns CPU
 * `awrrpt-bank-05-commit-redo.html`: DB Time rises because sessions wait on commit
 
+Real-life example:
+
+```text
+Users complain about slowness from 11:00 AM to 11:15 AM, but the DBA accidentally generates an AWR from 9:00 AM to 10:00 AM.
+Report Summary immediately exposes the wrong begin and end snapshots before anyone wastes time tuning the wrong workload.
+```
+
 Trainer delivery:
 
 "Report Summary prevents wrong diagnosis. If this is the wrong instance, wrong PDB, or wrong time window, every conclusion after this is noise."
@@ -1158,6 +1172,14 @@ First interpretation table:
 | Application | often locks or application-level waits | ASH, blockers, row-lock segments |
 | Concurrency | shared resource contention | ASH, segment waits, library cache |
 | Network | client fetch or round-trip behavior | service/module and application review |
+
+Real-life example:
+
+```text
+After salary processing starts, DB Time jumps and User I/O dominates.
+This can happen when a payroll report full-scans a large transaction table during online banking peak time.
+The wait class points the DBA toward SQL by Reads, not directly toward a storage ticket.
+```
 
 Trainer delivery:
 
@@ -1202,6 +1224,14 @@ Use sample reports:
 * `awrrpt-bank-01-cpu-sql.html`: SQL execution and CPU dominate
 * `awrrpt-bank-04-hard-parse.html`: parse time and library cache symptoms matter
 
+Real-life example:
+
+```text
+A new mobile banking release sends SQL with literal customer IDs instead of bind variables.
+Time Model shows parse and hard parse time rising, even though the individual SQL executions are small.
+That tells the DBA to investigate cursor reuse and application SQL generation.
+```
+
 Trainer delivery:
 
 "Time Model is the bridge between high-level DB Time and specific SQL sections. It tells whether to chase execution, parsing, PL/SQL, or connection behavior."
@@ -1245,6 +1275,13 @@ Use sample reports:
 * `awrrpt-bank-03-locking.html`: Application wait pattern
 * `awrrpt-bank-05-commit-redo.html`: Commit wait pattern
 
+Real-life example:
+
+```text
+The payment posting service is slow only during end-of-day upload.
+Foreground Wait Class shows Commit dominating because the loader commits every row instead of batching transactions.
+```
+
 ---
 
 # Slide 13 - Foreground Wait Events (10:18 - 10:19)
@@ -1278,6 +1315,14 @@ Better conclusion:
 ```text
 This wait tells me where to investigate next.
 I need SQL, object, module, and timing evidence.
+```
+
+Real-life example:
+
+```text
+`enq: TX - row lock contention` appears as a top event during loan approval.
+This can happen when one clerk opens a customer loan record and leaves the transaction uncommitted while other branches try to update the same account.
+The next check is ASH blocker evidence and the locked object, not an index rebuild.
 ```
 
 ---
@@ -1322,6 +1367,14 @@ Use sample reports:
 * `awrrpt-bank-01-cpu-sql.html`: internet banking SQL dominates CPU
 * `awrrpt-bank-02-io-full-scan.html`: AML-style workload drives reads
 
+Real-life example:
+
+```text
+The database hosts both card authorization and fraud analytics.
+Service Statistics shows `FRAUD_BATCH` consumed most physical reads, while `CARD_AUTH` used little DB Time.
+That means the incident may be a batch scheduling conflict, not a card application defect.
+```
+
 ---
 
 # Slide 15 - Service Wait Class Stats (10:20 - 10:21)
@@ -1351,6 +1404,13 @@ Practical example:
 CARD_SETTLE has most Commit waits.
 Do not blame all banking users.
 Focus on settlement import commit behavior.
+```
+
+Real-life example:
+
+```text
+Only the statement-generation service has high User I/O waits.
+This can happen when monthly PDF statement creation scans account history while teller and ATM services remain healthy.
 ```
 
 Use sample report:
@@ -1400,6 +1460,13 @@ If LGWR writes are slow, storage/Data Guard/synchronous commit path may be invol
 If commits per second are extreme, application commit design may be the cause.
 ```
 
+Real-life example:
+
+```text
+Foreground sessions show Commit waits and LGWR also shows write latency.
+This can happen when synchronous Data Guard transport slows down or redo logs sit on a busy storage volume.
+```
+
 ---
 
 # Slide 17 - Top Process Types By CPU Used (10:21 - 10:22)
@@ -1430,6 +1497,13 @@ Use sample reports:
 
 * `awrrpt-bank-01-cpu-sql.html`: foreground SQL CPU
 * `awrrpt-bank-04-hard-parse.html`: parse/library cache pressure
+
+Real-life example:
+
+```text
+Foreground CPU dominates after a marketing campaign starts.
+This can happen when thousands of customers repeatedly refresh balance and mini-statement screens that execute inefficient SQL.
+```
 
 ---
 
@@ -1465,6 +1539,13 @@ Evidence chain:
 
 ```text
 SQL_ID -> module/service -> elapsed/CPU/IO/gets/executions -> SQL text -> plan -> predicates -> fix
+```
+
+Real-life example:
+
+```text
+The complaint is "fund transfer is slow", but AWR shows one SQL_ID near the top of Elapsed Time, CPU Time, and Gets.
+This can happen when a transfer validation query scans transaction history too broadly for every transfer request.
 ```
 
 ---
@@ -1517,6 +1598,13 @@ Notice it is high in elapsed time, CPU time, and buffer gets.
 Conclusion: this is not just a slow screen; it is a workload-level SQL consumer.
 ```
 
+Real-life example:
+
+```text
+A customer statement query runs only 300 times in 30 minutes, but each execution takes several seconds.
+SQL ordered by Elapsed Time makes it visible because the total user-facing time is high even though execution count is not huge.
+```
+
 ---
 
 # Slide 20 - SQL Ordered By CPU Time (10:24 - 10:25)
@@ -1561,6 +1649,14 @@ Trainer delivery:
 
 "CPU tuning usually means reducing work, not just adding CPU. The plan must explain why the SQL used so many buffers or executions."
 
+Real-life example:
+
+```text
+CPU reaches 95 percent during login peak.
+SQL ordered by CPU Time shows an account entitlement query doing millions of logical reads because it misses a selective index.
+The practical fix is to reduce logical work, not immediately request more CPU cores.
+```
+
 ---
 
 # Slide 21 - SQL Ordered By User I/O Wait Time (10:25 - 10:26)
@@ -1601,6 +1697,13 @@ Use sample report:
 Trainer warning:
 
 "Do not say storage is slow until you know which SQL caused the reads and whether those reads were necessary."
+
+Real-life example:
+
+```text
+User I/O wait time jumps during AML screening.
+SQL ordered by User I/O Wait Time shows one scan of `TRANSACTIONS` reading years of data because the date predicate does not prune partitions.
+```
 
 ---
 
@@ -1646,6 +1749,13 @@ Ask: is it scanning account history too broadly?
 Next: inspect predicates and indexes.
 ```
 
+Real-life example:
+
+```text
+The same balance-check SQL runs thousands of times per minute and data is mostly cached.
+Physical reads are low, but SQL ordered by Gets is high because each execution touches too many index and table blocks in memory.
+```
+
 ---
 
 # Slide 23 - SQL Ordered By Reads (10:27 - 10:28)
@@ -1680,6 +1790,13 @@ Next checks:
 * `Segment Statistics` for the table/index being read
 * execution plan for full scan, partition pruning, or index access
 * business timing: should this report or batch run during peak OLTP?
+
+Real-life example:
+
+```text
+End-of-month statement generation starts at 10:00 AM and the `ACCOUNT_TXN_HISTORY` table becomes the top physical-read object.
+SQL ordered by Reads identifies the report SQL that is pulling too much historical data during business hours.
+```
 
 ---
 
@@ -1721,6 +1838,13 @@ Trainer delivery:
 
 "Unoptimized reads point to avoidable physical read pressure. The fix is often SQL shape, pruning, indexes, or workload placement, not only storage."
 
+Real-life example:
+
+```text
+On Exadata, a large fraud query reads many blocks but gets little smart-scan benefit.
+This can happen when predicates use functions or expressions that cannot be offloaded efficiently.
+```
+
 ---
 
 # Slide 25 - SQL Ordered By Executions (10:29 - 10:30)
@@ -1759,6 +1883,13 @@ Production question:
 
 ```text
 Can the application batch, cache, bind, array fetch, or reduce calls without changing business correctness?
+```
+
+Real-life example:
+
+```text
+A mobile app calls the same customer-preference lookup once for every account card displayed on the screen.
+Each call is fast, but SQL ordered by Executions shows millions of executions and a large total cost.
 ```
 
 ---
@@ -1814,6 +1945,13 @@ Trainer delivery:
 
 "High parse calls are often an application coding problem. Adding memory may hide the symptom briefly, but bind variables and cursor reuse fix the cause."
 
+Real-life example:
+
+```text
+After a release, the application sends `WHERE CUSTOMER_ID = 101`, `102`, `103` as different literal SQL texts.
+SQL ordered by Parse Calls becomes hot because Oracle repeatedly parses similar statements instead of reusing one bind-aware cursor.
+```
+
 ---
 
 # Slide 27 - SQL Ordered By Sharable Memory (10:31 - 10:32)
@@ -1854,6 +1992,13 @@ Production caution:
 ```text
 Do not increase shared pool first.
 Find why sharable memory grew.
+```
+
+Real-life example:
+
+```text
+A reporting tool generates very large SQL with hundreds of selected columns and dynamic filters.
+SQL ordered by Sharable Memory shows a few generated statements occupying disproportionate shared pool memory.
 ```
 
 ---
@@ -1908,6 +2053,13 @@ SELECT sql_id,
 FROM v$sql
 WHERE sql_id = '&&sql_id_from_awr'
 ORDER BY child_number;
+```
+
+Real-life example:
+
+```text
+Different application servers connect with different NLS settings after a deployment.
+The same SQL_ID gets many child cursors, so SQL ordered by Version Count rises and library cache contention may follow.
 ```
 
 ---
@@ -1968,6 +2120,13 @@ FROM TABLE(
 );
 ```
 
+Real-life example:
+
+```text
+The top SQL text in the elapsed-time section is truncated and only shows `SELECT ... FROM TRANSACTIONS`.
+Complete SQL Text reveals the business predicate, such as a missing branch/date filter, before the DBA retrieves the plan.
+```
+
 ---
 
 # Slide 30 - Instance Activity Statistics (10:34 - 10:35)
@@ -2008,6 +2167,13 @@ Examples:
 * high `physical reads` supports I/O pressure, but SQL must explain the reads
 * high `redo size` supports heavy DML or commit workload
 
+Real-life example:
+
+```text
+The top wait is `log file sync`, and Instance Activity shows a very high `user commits` rate.
+This can happen when a settlement loader commits every inserted row instead of every business batch.
+```
+
 ---
 
 # Slide 31 - IO Stats (10:35 - 10:36)
@@ -2040,6 +2206,13 @@ How to connect:
 
 ```text
 SQL ordered by Reads -> Segment Statistics -> tablespace/datafile
+```
+
+Real-life example:
+
+```text
+File IO Stats shows one datafile in the `TXN_DATA` tablespace has much higher read latency than others.
+This can happen when a hot transaction partition or datafile is placed on a slower storage tier.
 ```
 
 Trainer delivery:
@@ -2075,6 +2248,13 @@ Practical rule:
 
 ```text
 If a wait does not consume meaningful DB Time and does not match the complaint, do not lead with it.
+```
+
+Real-life example:
+
+```text
+Buffer busy waits rise during branch cash posting.
+This can happen when many sessions insert into or update rows concentrated in the same few blocks, such as a poorly distributed sequence/index hotspot.
 ```
 
 ---
@@ -2116,6 +2296,13 @@ Banking note:
 ```text
 Undo is not only performance.
 It protects read consistency and rollback safety during financial transactions.
+```
+
+Real-life example:
+
+```text
+A long-running regulatory report fails with snapshot-too-old while a batch job updates millions of transaction rows.
+Undo Statistics helps show whether undo pressure and long query duration were part of the incident.
 ```
 
 ---
@@ -2160,6 +2347,13 @@ Trainer delivery:
 
 "Segment Statistics connects SQL symptoms to physical database objects. This is where vague SQL evidence becomes table/index evidence."
 
+Real-life example:
+
+```text
+SQL by Reads points to a statement, and Segment Statistics shows `TRANSACTIONS_2026_Q2` as the top physical-read segment.
+This can happen when a report misses partition pruning and scans the current quarter transaction partition repeatedly.
+```
+
 ---
 
 # Slide 35 - Dictionary Cache Statistics (10:39 - 10:40)
@@ -2199,6 +2393,13 @@ Use sample report:
 
 ```text
 02-Day/reports/awrrpt-bank-04-hard-parse.html
+```
+
+Real-life example:
+
+```text
+During a deployment window, many packages are recompiled and application sessions reconnect.
+Dictionary Cache Statistics can show extra metadata lookup pressure caused by object invalidation and reparsing.
 ```
 
 ---
@@ -2245,6 +2446,13 @@ Production fixes to consider only after validation:
 * review session cursor caching
 * fix application connection/session behavior
 
+Real-life example:
+
+```text
+A release process gathers stats and recompiles objects during online peak.
+Library Cache Statistics shows reloads and invalidations because shared SQL and PL/SQL objects keep being invalidated while users are active.
+```
+
 ---
 
 # Slide 37 - Initialization Parameters (10:41 - 10:42)
@@ -2278,6 +2486,13 @@ Useful parameters:
 | `db_file_multiblock_read_count` | scan behavior context |
 | `parallel_degree_policy` | unexpected parallelism |
 | `undo_retention` | undo/read consistency context |
+
+Real-life example:
+
+```text
+After migration, reports suddenly run in parallel and consume CPU during OLTP hours.
+Initialization Parameters helps confirm whether parallel policy or optimizer-related settings changed between the baseline and incident window.
+```
 
 Trainer warning:
 
@@ -2351,6 +2566,13 @@ ORDER BY ash_samples DESC
 FETCH FIRST 10 ROWS ONLY;
 ```
 
+Real-life example:
+
+```text
+AWR shows Application waits but not the exact blocker story.
+ASH shows session 321 from the loan module blocking many teller sessions for 12 minutes on the same SQL_ID and object.
+```
+
 Trainer delivery:
 
 "AWR says what consumed time in the interval. ASH says who was active, when, and on what."
@@ -2393,6 +2615,13 @@ Use sample reports:
 * `awrrpt-bank-02-io-full-scan.html`: I/O and full-scan direction
 * `awrrpt-bank-03-locking.html`: blocking direction
 * `awrrpt-bank-05-commit-redo.html`: commit latency direction
+
+Real-life example:
+
+```text
+ADDM recommends SQL tuning for one high-load SQL_ID.
+Before accepting it, the DBA confirms the same SQL_ID appears in AWR SQL by Elapsed Time, CPU Time, and Gets, then checks the execution plan.
+```
 
 ---
 
