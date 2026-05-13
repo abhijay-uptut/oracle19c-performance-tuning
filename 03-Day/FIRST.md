@@ -19,6 +19,24 @@ By the end of this half day, trainees should be able to:
 * understand why one execution plan may not fit every bind value
 * use hints carefully for diagnosis, not as the first production fix
 
+## Half-Day Storyline
+
+The whole morning follows one banking incident pattern:
+
+```text
+A payment or branch transaction query was fast yesterday.
+Today it is slow.
+The application team says the SQL text did not change.
+The DBA must prove whether the cause is plan change, skewed data, bind values, or unsafe plan forcing.
+```
+
+We use two connected labs:
+
+| Lab | Banking story | DBA skill |
+| --- | ------------- | --------- |
+| Lab 9 | Payment settlement query needs plan stability | Capture and verify a SQL plan baseline |
+| Lab 10 | Same branch report SQL behaves differently for big and small branches | Diagnose skew, histograms, bind peeking, ACS, and hint risk |
+
 ---
 
 # HALF-DAY DESIGN PHILOSOPHY
@@ -96,21 +114,34 @@ ALTER SESSION SET optimizer_use_sql_plan_baselines = TRUE;
 
 # SECTION 1 - PLAN REGRESSION SCENARIO (9:00 - 9:10)
 
+Banking scenario:
+
+```text
+The overnight payment settlement job normally finishes before branches open.
+After a statistics refresh, the same payment query takes much longer and delays operational reporting.
+```
+
 # Slide 1 - Day 3 Opening
 
 ## Slide Content
 
-# Advanced Production Tuning
+# Advanced Production Tuning In A Bank
 
-Day 3 focuses on:
+Production problem:
+
+```text
+Same SQL text.
+Different runtime.
+Business impact.
+```
+
+Today we learn how a DBA separates:
 
 * plan regression
-* plan stability
-* SQL Plan Management
-* bind peeking
-* adaptive cursor sharing
-* hints and SQL Profiles
-* locking and concurrency later today
+* bind-value behavior
+* skewed data
+* emergency plan control
+* long-term safe tuning
 
 ---
 
@@ -136,7 +167,7 @@ Now we need to understand plan stability, bind values, and concurrency."
 
 ## Slide Content
 
-# Scenario
+# Payment Settlement Regression
 
 Payment settlement query:
 
@@ -145,7 +176,15 @@ Yesterday: 1 second
 Today:    40 seconds
 ```
 
-Possible cause:
+Business impact:
+
+```text
+settlement dashboard delayed
+operations team cannot confirm pending payments quickly
+support tickets increase
+```
+
+Technical question:
 
 ```text
 Same SQL, different execution plan
@@ -178,13 +217,20 @@ SQL Plan Management helps us stabilize known good plans for critical SQL."
 
 # SECTION 2 - SQL PLAN MANAGEMENT MENTAL MODEL (9:10 - 9:25)
 
+Banking scenario:
+
+```text
+The DBA finds yesterday's plan was good and today's plan is risky.
+The bank needs a controlled way to keep using the known good plan while investigating the root cause.
+```
+
 # Slide 3 - What SPM Does
 
 ## Slide Content
 
-# SQL Plan Management
+# SQL Plan Management For Critical Banking SQL
 
-SPM helps Oracle:
+SPM is a safety control for important SQL:
 
 * capture known plans
 * store accepted plans
@@ -195,7 +241,13 @@ SPM helps Oracle:
 Core idea:
 
 ```text
-Use approved plans unless a better plan is verified.
+Do not let critical payment SQL suddenly switch to an untested plan.
+```
+
+DBA benefit:
+
+```text
+stabilize production first, then tune with evidence
 ```
 
 ---
@@ -203,6 +255,12 @@ Use approved plans unless a better plan is verified.
 # Slide 4 - Key Terms
 
 ## Slide Content
+
+Real example:
+
+```text
+One payment settlement SQL can have one SQL handle and multiple possible plan names.
+```
 
 | Term | Meaning |
 | ---- | ------- |
@@ -231,6 +289,8 @@ In production, fixed plans can be useful during emergencies, but they can also b
 
 ## Slide Content
 
+Use SPM when plan stability protects the business.
+
 Good candidates:
 
 * payment settlement
@@ -248,27 +308,58 @@ Poor candidates:
 * I/O bottlenecks unrelated to plan
 * every SQL in the database
 
+DBA rule:
+
+```text
+Baseline critical SQL, not every SQL.
+```
+
 ---
 
 # SECTION 3 - LAB SETUP: PAYMENT WORKLOAD (9:25 - 9:45)
+
+Banking scenario:
+
+```text
+We create a small version of a payment settlement table.
+Most payments are already settled, while a smaller set is pending or failed.
+The pending-today query represents the SQL operations staff cares about.
+```
 
 # Slide 6 - Lab Objective
 
 ## Slide Content
 
-We will:
+Lab 9 story:
 
-1. create a payment table
-2. create a useful index
-3. run a critical payment query
-4. capture its SQL ID and plan
-5. load the plan into SPM
-6. verify the baseline exists
-7. rerun and check plan notes
+```text
+Build a payment workload, prove the important query has a good plan, then preserve that plan.
+```
+
+What each setup step means:
+
+1. Create the table so we have a controlled payment workload.
+2. Insert realistic status distribution: mostly settled, some pending and failed.
+3. Create the index a DBA would expect for status/date lookup.
+4. Gather histogram stats so Oracle understands the status distribution.
+5. Validate the setup before trusting any plan result.
+
+DBA benefit:
+
+```text
+You learn to build evidence before touching production SQL.
+```
 
 ---
 
 # Step 1 - Drop And Create Payments Table
+
+Why this step matters:
+
+```text
+The table represents payment settlement records that operations query during the day.
+Dropping and recreating keeps every classroom run predictable.
+```
 
 ```sql
 BEGIN
@@ -298,6 +389,13 @@ CREATE TABLE payments (
 # Step 2 - Insert Payment Data
 
 This is sized to work on normal classroom machines.
+
+Why this step matters:
+
+```text
+Most banking payments are already settled; only a smaller subset needs active investigation.
+That status imbalance lets us discuss selectivity and histograms later.
+```
 
 ```sql
 BEGIN
@@ -349,6 +447,13 @@ FAILED  = around 5%
 
 # Step 3 - Create Supporting Index
 
+Why this step matters:
+
+```text
+The business query filters by payment status and settlement date.
+A DBA checks whether an index supports the business access pattern.
+```
+
 ```sql
 CREATE INDEX idx_payments_status_date
 ON payments(status, settlement_date);
@@ -357,6 +462,13 @@ ON payments(status, settlement_date);
 ---
 
 # Step 4 - Gather Statistics With Histogram
+
+Why this step matters:
+
+```text
+Without fresh stats, Oracle may guess incorrectly.
+The histogram helps Oracle understand that SETTLED is common while PENDING and FAILED are less common.
+```
 
 ```sql
 BEGIN
@@ -373,6 +485,12 @@ END;
 ---
 
 # Step 5 - Validate Setup
+
+Why this step matters:
+
+```text
+Before discussing plans, the DBA first proves the data pattern and statistics are what the lab expects.
+```
 
 ```sql
 SELECT status, COUNT(*) AS row_count
@@ -393,24 +511,48 @@ AND column_name = 'STATUS';
 
 # SECTION 4 - LAB 9: CAPTURE SQL PLAN BASELINE (9:45 - 10:15)
 
+Banking scenario:
+
+```text
+The payment query is business-critical.
+The DBA wants to capture the known good plan so a future stats refresh, patch, or index change does not silently replace it with a bad plan.
+```
+
 # Slide 7 - Critical SQL
 
 ## Slide Content
 
-Payment settlement query:
+# Payment Query To Protect
+
+Operations asks:
+
+```text
+How many payments are still pending for today's settlement date?
+```
 
 ```sql
 WHERE status = 'PENDING'
 AND settlement_date = TRUNC(SYSDATE)
 ```
 
-This represents a business-critical settlement workload.
+Why the DBA cares:
+
+```text
+If this query slows down, payment monitoring and settlement confirmation slow down.
+```
 
 ---
 
 # Step 1 - Run Critical SQL
 
 Use `COUNT(*)` first to avoid printing many rows.
+
+Why this step matters:
+
+```text
+First execute the exact SQL shape we want to protect.
+Oracle can only capture a plan that has actually been parsed and executed.
+```
 
 ```sql
 SELECT /* day3_spm_payment_pending */
@@ -435,6 +577,15 @@ The exact operation may vary, but with this data and index Oracle should usually
 # Step 2 - Find SQL ID, Child Number And Plan Hash
 
 Do this before displaying the runtime plan. In SQL Developer, `DBMS_XPLAN.DISPLAY_CURSOR(NULL,NULL,...)` may pick an internal SQL Developer cursor instead of the payment query.
+
+Why this step matters:
+
+```text
+SQL ID identifies the statement.
+Child number identifies the specific cursor.
+Plan hash identifies the execution plan.
+Together they let the DBA point at the exact plan, not a guess.
+```
 
 ```sql
 COLUMN spm_sql_id NEW_VALUE spm_sql_id
@@ -471,6 +622,13 @@ FROM dual;
 
 Use the captured cursor values instead of `NULL,NULL`.
 
+Why this step matters:
+
+```text
+The DBA must inspect the actual runtime plan before preserving it.
+Never baseline a plan just because the SQL is important.
+```
+
 ```sql
 SELECT *
 FROM TABLE(
@@ -485,6 +643,12 @@ FROM TABLE(
 ---
 
 # Step 4 - Load Plan From Cursor Cache
+
+Why this step matters:
+
+```text
+This is the moment we tell Oracle: this observed plan is approved for this SQL.
+```
 
 ```sql
 DECLARE
@@ -517,6 +681,13 @@ If plans loaded is `0`:
 ---
 
 # Step 5 - View SQL Plan Baseline
+
+Why this step matters:
+
+```text
+Production DBAs verify every change.
+The baseline view proves whether the plan was captured, enabled, accepted, and fixed or not fixed.
+```
 
 ```sql
 SELECT sql_handle,
@@ -558,6 +729,12 @@ Record:
 ---
 
 # Step 6 - Rerun Same SQL And Check Baseline Note
+
+Why this step matters:
+
+```text
+The rerun proves Oracle can still execute the SQL and that the accepted baseline is available.
+```
 
 ```sql
 SELECT /* day3_spm_payment_pending */
@@ -633,14 +810,30 @@ The note text can vary by version. The important check is that the baseline exis
 
 # SECTION 5 - EVOLUTION, FIXED BASELINES & SAFETY (10:15 - 10:30)
 
+Banking scenario:
+
+```text
+Two weeks later, a new index is added for payment reporting.
+Oracle discovers a new plan for the settlement query.
+The DBA must decide whether the new plan is actually better before allowing production to use it.
+```
+
 # Slide 8 - Plan Evolution
 
 ## Slide Content
 
-Plan evolution means:
+# Plan Evolution
 
 ```text
 Test new candidate plan before accepting it.
+```
+
+Banking example:
+
+```text
+The old plan is stable.
+The new plan might be faster after a new reporting index.
+SPM lets the DBA test before trusting it.
 ```
 
 Use when:
@@ -650,11 +843,24 @@ Use when:
 * upgrade introduces new optimizer choices
 * you want improvement without surprise regression
 
+DBA benefit:
+
+```text
+improvement without surprise regression
+```
+
 ---
 
 # Optional - Evolve Report
 
 Use a SQL handle from the baseline query.
+
+Why this step matters:
+
+```text
+The evolve report shows whether Oracle considers another plan safe to accept.
+It is a review artifact a DBA can attach to a change ticket.
+```
 
 ```sql
 SET LONG 1000000
@@ -675,10 +881,17 @@ This is optional because the lab may not have a second candidate plan. Use it to
 
 ## Slide Content
 
-Fixed baseline:
+# Fixed Baselines
 
 ```text
 stronger preference for a specific accepted plan
+```
+
+Banking emergency example:
+
+```text
+A salary credit batch is running slowly after a patch.
+The DBA temporarily fixes the known good plan to restore service.
 ```
 
 Use carefully for:
@@ -691,6 +904,12 @@ Risk:
 
 ```text
 May block better future plans.
+```
+
+DBA rule:
+
+```text
+Use fixed baselines as containment, not as permanent tuning by default.
 ```
 
 ---
@@ -708,11 +927,23 @@ Before using SPM in production:
 * define rollback
 * review baselines periodically
 
+Banking change-control note:
+
+```text
+For payment, ledger, or regulatory SQL, document why the baseline exists and how to remove it safely.
+```
+
 ---
 
 # Optional - Baseline Rollback Example
 
 Use the SQL handle and plan name from the baseline view.
+
+Why this step matters:
+
+```text
+Every production plan-control change needs a rollback path.
+```
 
 ```sql
 DECLARE
@@ -740,11 +971,20 @@ Do not run this unless you intentionally want to remove the lab baseline. It is 
 
 # SECTION 6 - BIND PEEKING MENTAL MODEL (10:45 - 11:00)
 
+Banking scenario:
+
+```text
+The application uses one branch report SQL with a bind variable.
+For the head-office branch it returns many rows.
+For a small rural branch it returns very few rows.
+The SQL text is the same, but the best plan may be different.
+```
+
 # Slide 10 - Same SQL, Different Values
 
 ## Slide Content
 
-Same SQL:
+# Same SQL, Different Branch Size
 
 ```sql
 SELECT ...
@@ -752,17 +992,23 @@ FROM branch_transactions
 WHERE branch_id = :b_branch_id;
 ```
 
-Different values:
+Banking example:
 
 ```text
-branch_id = 1 -> many rows
-branch_id = 3 -> few rows
+branch_id = 1 -> head office branch, many transactions
+branch_id = 3 -> small branch, few transactions
 ```
 
 Problem:
 
 ```text
 One plan may not be good for every value.
+```
+
+DBA benefit:
+
+```text
+understand why a query can be fast for one branch and slow for another
 ```
 
 ---
@@ -783,6 +1029,12 @@ That is where bind peeking and adaptive cursor sharing become important."
 
 ## Slide Content
 
+What the DBA is trying to prove:
+
+```text
+Is Oracle choosing one reusable plan, or can it adapt when bind values return very different row counts?
+```
+
 | Concept | Meaning |
 | ------- | ------- |
 | Bind peeking | optimizer looks at bind value during hard parse |
@@ -791,15 +1043,36 @@ That is where bind peeking and adaptive cursor sharing become important."
 | Bind aware | Oracle may use different child cursors/plans |
 | Histogram | stats object showing value distribution |
 
+Banking translation:
+
+```text
+Histograms help Oracle know that not every branch_id has the same transaction volume.
+```
+
 ---
 
 # SECTION 7 - LAB 10: BIND VARIABLES AND SKEWED DATA (11:00 - 11:35)
+
+Banking scenario:
+
+```text
+The branch transaction report is parameterized.
+Users pass one branch_id at a time.
+The DBA must explain why a query for a large branch needs a different access pattern than a query for a small branch.
+```
 
 # Slide 12 - Lab Objective
 
 ## Slide Content
 
-We will:
+Lab 10 story:
+
+```text
+Create one large branch, one medium branch, and one small branch.
+Then run the same bind SQL for different branches and inspect Oracle's cursor behavior.
+```
+
+What each step means:
 
 1. create skewed branch transaction data
 2. gather stats with histogram
@@ -808,9 +1081,22 @@ We will:
 5. inspect child cursors
 6. discuss hints and why one forced plan can be unsafe
 
+DBA benefit:
+
+```text
+recognize when the problem is not the SQL text, but the bind value and data distribution
+```
+
 ---
 
 # Step 1 - Drop And Create Branch Transactions
+
+Why this step matters:
+
+```text
+This table models transaction activity by branch.
+It gives us a clean place to demonstrate skew without depending on prior lab data.
+```
 
 ```sql
 BEGIN
@@ -840,6 +1126,13 @@ CREATE TABLE branch_transactions (
 # Step 2 - Insert Skewed Data
 
 This uses set-based inserts for speed.
+
+Why this step matters:
+
+```text
+Real banks do not have equal traffic in every branch.
+Head office or city branches may process hundreds of times more transactions than small branches.
+```
 
 Branch 1: large branch.
 
@@ -899,6 +1192,13 @@ COMMIT;
 
 # Step 3 - Create Index And Gather Histogram Stats
 
+Why this step matters:
+
+```text
+The index gives Oracle an efficient path for selective branch lookups.
+The histogram tells Oracle that branch_id values are not evenly distributed.
+```
+
 ```sql
 CREATE INDEX idx_branch_txn_branch
 ON branch_transactions(branch_id);
@@ -919,6 +1219,12 @@ END;
 ---
 
 # Step 4 - Verify Distribution And Histogram
+
+Why this step matters:
+
+```text
+Before blaming bind peeking or ACS, the DBA proves the data is actually skewed.
+```
 
 ```sql
 SELECT branch_id,
@@ -958,6 +1264,13 @@ HISTOGRAM = FREQUENCY
 
 # Step 5 - Prepare Bind Variable
 
+Why this step matters:
+
+```text
+Applications normally send bind variables, not hard-coded branch values.
+This step makes the lab behave more like application SQL.
+```
+
 ```sql
 VARIABLE b_branch_id NUMBER
 ```
@@ -967,6 +1280,13 @@ Run the same SQL shape with different values. Use aggregate queries to avoid pri
 ---
 
 # Step 6 - Rare Value First
+
+Why this step matters:
+
+```text
+Branch 3 has few rows.
+An index access path may be efficient because Oracle can find a small subset quickly.
+```
 
 ```sql
 EXEC :b_branch_id := 3;
@@ -995,6 +1315,13 @@ Branch 3 is selective. Index access may be appropriate.
 ---
 
 # Step 7 - Common Value
+
+Why this step matters:
+
+```text
+Branch 1 has many rows.
+A full scan may be cheaper than using an index to visit many table rows one by one.
+```
 
 ```sql
 EXEC :b_branch_id := 1;
@@ -1030,6 +1357,12 @@ Oracle may reuse the first plan initially. Adaptive cursor sharing may require r
 
 Use this simple repeatable SQL*Plus script:
 
+Why this step matters:
+
+```text
+Adaptive Cursor Sharing may need repeated executions before Oracle decides bind values deserve different child cursors.
+```
+
 ```sql
 EXEC :b_branch_id := 3
 SELECT /* day3_bind_branch_demo */ SUM(amount) FROM branch_transactions WHERE branch_id = :b_branch_id;
@@ -1050,6 +1383,13 @@ SELECT /* day3_bind_branch_demo */ SUM(amount) FROM branch_transactions WHERE br
 ---
 
 # Step 9 - Inspect Child Cursors
+
+Why this step matters:
+
+```text
+Child cursors show whether Oracle is treating the same SQL differently for different bind patterns.
+This is key evidence in a production bind-sensitivity investigation.
+```
 
 ```sql
 SELECT sql_id,
@@ -1086,6 +1426,13 @@ FROM TABLE(
 
 This is normal in short labs.
 
+DBA lesson:
+
+```text
+Do not force a conclusion.
+If ACS does not appear, use the evidence available: row counts, histogram, plan shape, buffers, and peeked binds.
+```
+
 Possible reasons:
 
 * not enough executions
@@ -1109,6 +1456,12 @@ Use the evidence you do have:
 
 # Step 11 - Bind Lab Worksheet
 
+Why this step matters:
+
+```text
+The worksheet turns the lab into a production-style evidence record.
+```
+
 | Item | Observation |
 | ---- | ----------- |
 | Branch 1 rows | |
@@ -1127,11 +1480,20 @@ Use the evidence you do have:
 
 # SECTION 8 - HINTS, PROFILES, BASELINES, INDEXES (11:35 - 11:50)
 
+Banking scenario:
+
+```text
+An application team asks the DBA to add an INDEX hint because the small-branch report is fast with the index.
+The DBA must test whether that same hint damages the head-office branch report.
+```
+
 # Slide 13 - Why Hints Are Risky With Skew
 
 ## Slide Content
 
-Force index:
+# Hint Risk With Uneven Branch Traffic
+
+Forced index plan:
 
 ```sql
 SELECT /*+ INDEX(branch_transactions idx_branch_txn_branch) */
@@ -1140,16 +1502,22 @@ FROM branch_transactions
 WHERE branch_id = :b_branch_id;
 ```
 
-May be good for:
+May help:
 
 ```text
-branch_id = 3
+small branch -> few rows -> index can be efficient
 ```
 
-May be bad for:
+May hurt:
 
 ```text
-branch_id = 1
+large branch -> many rows -> index can cause excessive table lookups
+```
+
+DBA rule:
+
+```text
+A hint that fixes one bind value can break another bind value.
 ```
 
 ---
@@ -1157,6 +1525,13 @@ branch_id = 1
 # Hint Demonstration
 
 Compare forced full scan and forced index for both branch values:
+
+Why this step matters:
+
+```text
+The DBA proves that hints are not magic.
+The same forced access path can be good for one data pattern and bad for another.
+```
 
 ```sql
 EXEC :b_branch_id := 3
@@ -1214,11 +1589,20 @@ Ask:
 * Which hint helps the common value?
 * Why can one forced plan be unsafe?
 
+Banking discussion:
+
+```text
+Would you hard-code an INDEX hint into a shared branch report used by every branch?
+What happens on month-end when large branches process even more rows?
+```
+
 ---
 
 # Slide 14 - Tool Selection Table
 
 ## Slide Content
+
+# Choose The Tool Based On Root Cause
 
 | Problem | Better Tool |
 | ------- | ----------- |
@@ -1229,6 +1613,15 @@ Ask:
 | Application SQL cannot change | Profile or baseline |
 | Bad query logic | Rewrite SQL |
 | Different bind values need different plans | ACS, histogram, query design |
+
+Banking examples:
+
+| Banking symptom | Better DBA response |
+| --------------- | ------------------- |
+| Payment query changed plan after stats refresh | Consider SQL plan baseline |
+| Branch report wrong estimate because one branch is huge | Check histogram and bind behavior |
+| Query returns too much history | Rewrite SQL with business filters |
+| Emergency batch must finish tonight | Temporary baseline or targeted hint with rollback |
 
 ---
 
@@ -1244,19 +1637,35 @@ The senior DBA skill is matching the tool to the root cause."
 
 # SECTION 9 - MORNING SUMMARY (11:50 - 12:00)
 
+Banking scenario:
+
+```text
+The incident bridge asks for a clear DBA recommendation.
+The DBA must explain whether the issue is plan regression, bind skew, missing stats, unsafe hints, or bad SQL design.
+```
+
 # Slide 15 - Key Takeaways
 
 ## Slide Content
 
-Day 3 morning lessons:
+# DBA Decision Framework
 
-* SQL can regress because the plan changed
-* SPM stores accepted plans for stability
-* baselines are for critical SQL, not every SQL
-* bind variables improve reuse but can expose skew problems
-* histograms help Oracle understand skew
-* adaptive cursor sharing may create multiple child cursors
-* hints can help diagnosis but can be dangerous as a blanket fix
+For banking SQL:
+
+1. Confirm the business impact.
+2. Identify the exact SQL ID and child cursor.
+3. Read the runtime plan before changing anything.
+4. Check whether the problem is plan regression or bind-value skew.
+5. Use histograms to help Oracle understand uneven data.
+6. Use baselines for critical plan stability.
+7. Use hints mainly for diagnosis or short-term containment.
+8. Document rollback for every plan-control change.
+
+Main lesson:
+
+```text
+Do not guess. Preserve stability, prove the root cause, then choose the smallest safe fix.
+```
 
 ---
 
@@ -1270,7 +1679,11 @@ Do not hint everything.
 
 Do not assume one plan is good for every bind value.
 
-Read the data distribution, runtime plan, and cursor behavior."
+Read the data distribution, runtime plan, and cursor behavior.
+
+In a bank, tuning is not just about making SQL faster.
+
+It is about protecting settlement, reporting, customer service, and audit reliability."
 
 ---
 

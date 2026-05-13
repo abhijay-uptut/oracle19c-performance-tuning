@@ -10,7 +10,7 @@ Use the command IDs to identify commands during delivery. Commands are listed in
 
 ### Command ID: D3-0001 - COMMON SESSION SETTINGS
 
-Source: `03-Day/FIRST.md:79`
+Source: `03-Day/FIRST.md:97`
 
 ```sql
 SET LINESIZE 220
@@ -26,7 +26,7 @@ ALTER SESSION SET optimizer_use_sql_plan_baselines = TRUE;
 
 ### Command ID: D3-0002 - Step 1 - Drop And Create Payments Table
 
-Source: `03-Day/FIRST.md:273`
+Source: `03-Day/FIRST.md:364`
 
 ```sql
 BEGIN
@@ -53,7 +53,7 @@ CREATE TABLE payments (
 
 ### Command ID: D3-0003 - Step 2 - Insert Payment Data
 
-Source: `03-Day/FIRST.md:302`
+Source: `03-Day/FIRST.md:400`
 
 ```sql
 BEGIN
@@ -95,7 +95,7 @@ COMMIT;
 
 ### Command ID: D3-0004 - Step 3 - Create Supporting Index
 
-Source: `03-Day/FIRST.md:352`
+Source: `03-Day/FIRST.md:457`
 
 ```sql
 CREATE INDEX idx_payments_status_date
@@ -104,7 +104,7 @@ ON payments(status, settlement_date);
 
 ### Command ID: D3-0005 - Step 4 - Gather Statistics With Histogram
 
-Source: `03-Day/FIRST.md:361`
+Source: `03-Day/FIRST.md:473`
 
 ```sql
 BEGIN
@@ -120,7 +120,7 @@ END;
 
 ### Command ID: D3-0006 - Step 5 - Validate Setup
 
-Source: `03-Day/FIRST.md:377`
+Source: `03-Day/FIRST.md:495`
 
 ```sql
 SELECT status, COUNT(*) AS row_count
@@ -139,7 +139,7 @@ AND column_name = 'STATUS';
 
 ### Command ID: D3-0007 - Step 1 - Run Critical SQL
 
-Source: `03-Day/FIRST.md:415`
+Source: `03-Day/FIRST.md:557`
 
 ```sql
 SELECT /* day3_spm_payment_pending */
@@ -151,7 +151,7 @@ AND settlement_date = TRUNC(SYSDATE);
 
 ### Command ID: D3-0008 - Step 2 - Find SQL ID, Child Number And Plan Hash
 
-Source: `03-Day/FIRST.md:439`
+Source: `03-Day/FIRST.md:590`
 
 ```sql
 COLUMN spm_sql_id NEW_VALUE spm_sql_id
@@ -175,7 +175,7 @@ FETCH FIRST 1 ROW ONLY;
 
 ### Command ID: D3-0009 - Step 2 - Find SQL ID, Child Number And Plan Hash
 
-Source: `03-Day/FIRST.md:461`
+Source: `03-Day/FIRST.md:612`
 
 ```sql
 SELECT '&&spm_sql_id' AS sql_id,
@@ -186,7 +186,7 @@ FROM dual;
 
 ### Command ID: D3-0010 - Step 3 - Display Captured Runtime Plan
 
-Source: `03-Day/FIRST.md:474`
+Source: `03-Day/FIRST.md:632`
 
 ```sql
 SELECT *
@@ -201,7 +201,7 @@ FROM TABLE(
 
 ### Command ID: D3-0011 - Step 4 - Load Plan From Cursor Cache
 
-Source: `03-Day/FIRST.md:489`
+Source: `03-Day/FIRST.md:653`
 
 ```sql
 DECLARE
@@ -219,7 +219,7 @@ END;
 
 ### Command ID: D3-0012 - Step 5 - View SQL Plan Baseline
 
-Source: `03-Day/FIRST.md:521`
+Source: `03-Day/FIRST.md:692`
 
 ```sql
 SELECT sql_handle,
@@ -237,7 +237,7 @@ FETCH FIRST 10 ROWS ONLY;
 
 ### Command ID: D3-0013 - Step 5 - View SQL Plan Baseline
 
-Source: `03-Day/FIRST.md:537`
+Source: `03-Day/FIRST.md:708`
 
 ```sql
 SELECT sql_handle,
@@ -254,7 +254,7 @@ FETCH FIRST 10 ROWS ONLY;
 
 ### Command ID: D3-0014 - Step 6 - Rerun Same SQL And Check Baseline Note
 
-Source: `03-Day/FIRST.md:562`
+Source: `03-Day/FIRST.md:739`
 
 ```sql
 SELECT /* day3_spm_payment_pending */
@@ -266,7 +266,7 @@ AND settlement_date = TRUNC(SYSDATE);
 
 ### Command ID: D3-0015 - Step 6 - Rerun Same SQL And Check Baseline Note
 
-Source: `03-Day/FIRST.md:572`
+Source: `03-Day/FIRST.md:749`
 
 ```sql
 COLUMN spm_sql_id NEW_VALUE spm_sql_id
@@ -290,7 +290,7 @@ FETCH FIRST 1 ROW ONLY;
 
 ### Command ID: D3-0016 - Step 6 - Rerun Same SQL And Check Baseline Note
 
-Source: `03-Day/FIRST.md:594`
+Source: `03-Day/FIRST.md:771`
 
 ```sql
 SELECT *
@@ -305,7 +305,7 @@ FROM TABLE(
 
 ### Command ID: D3-0017 - Optional - Evolve Report
 
-Source: `03-Day/FIRST.md:659`
+Source: `03-Day/FIRST.md:865`
 
 ```sql
 SET LONG 1000000
@@ -318,7 +318,7 @@ FROM dual;
 
 ### Command ID: D3-0018 - Optional - Baseline Rollback Example
 
-Source: `03-Day/FIRST.md:717`
+Source: `03-Day/FIRST.md:948`
 
 ```sql
 DECLARE
@@ -336,7 +336,7 @@ END;
 
 ### Command ID: D3-0019 - Step 1 - Drop And Create Branch Transactions
 
-Source: `03-Day/FIRST.md:815`
+Source: `03-Day/FIRST.md:1101`
 
 ```sql
 BEGIN
@@ -363,7 +363,7 @@ CREATE TABLE branch_transactions (
 
 ### Command ID: D3-0020 - Step 2 - Insert Skewed Data
 
-Source: `03-Day/FIRST.md:846`
+Source: `03-Day/FIRST.md:1139`
 
 ```sql
 INSERT /*+ APPEND */ INTO branch_transactions
@@ -383,7 +383,7 @@ COMMIT;
 
 ### Command ID: D3-0021 - Step 2 - Insert Skewed Data
 
-Source: `03-Day/FIRST.md:864`
+Source: `03-Day/FIRST.md:1157`
 
 ```sql
 INSERT /*+ APPEND */ INTO branch_transactions
@@ -403,7 +403,7 @@ COMMIT;
 
 ### Command ID: D3-0022 - Step 2 - Insert Skewed Data
 
-Source: `03-Day/FIRST.md:882`
+Source: `03-Day/FIRST.md:1175`
 
 ```sql
 INSERT /*+ APPEND */ INTO branch_transactions
@@ -423,7 +423,7 @@ COMMIT;
 
 ### Command ID: D3-0023 - Step 3 - Create Index And Gather Histogram Stats
 
-Source: `03-Day/FIRST.md:902`
+Source: `03-Day/FIRST.md:1202`
 
 ```sql
 CREATE INDEX idx_branch_txn_branch
@@ -432,7 +432,7 @@ ON branch_transactions(branch_id);
 
 ### Command ID: D3-0024 - Step 3 - Create Index And Gather Histogram Stats
 
-Source: `03-Day/FIRST.md:907`
+Source: `03-Day/FIRST.md:1207`
 
 ```sql
 BEGIN
@@ -448,7 +448,7 @@ END;
 
 ### Command ID: D3-0025 - Step 4 - Verify Distribution And Histogram
 
-Source: `03-Day/FIRST.md:923`
+Source: `03-Day/FIRST.md:1229`
 
 ```sql
 SELECT branch_id,
@@ -460,7 +460,7 @@ ORDER BY branch_id;
 
 ### Command ID: D3-0026 - Step 4 - Verify Distribution And Histogram
 
-Source: `03-Day/FIRST.md:941`
+Source: `03-Day/FIRST.md:1247`
 
 ```sql
 SELECT column_name,
@@ -474,7 +474,7 @@ AND column_name = 'BRANCH_ID';
 
 ### Command ID: D3-0027 - Step 5 - Prepare Bind Variable
 
-Source: `03-Day/FIRST.md:961`
+Source: `03-Day/FIRST.md:1274`
 
 ```sql
 VARIABLE b_branch_id NUMBER
@@ -482,7 +482,7 @@ VARIABLE b_branch_id NUMBER
 
 ### Command ID: D3-0028 - Step 6 - Rare Value First
 
-Source: `03-Day/FIRST.md:971`
+Source: `03-Day/FIRST.md:1291`
 
 ```sql
 EXEC :b_branch_id := 3;
@@ -504,7 +504,7 @@ FROM TABLE(
 
 ### Command ID: D3-0029 - Step 7 - Common Value
 
-Source: `03-Day/FIRST.md:999`
+Source: `03-Day/FIRST.md:1326`
 
 ```sql
 EXEC :b_branch_id := 1;
@@ -526,7 +526,7 @@ FROM TABLE(
 
 ### Command ID: D3-0030 - Step 8 - Repeat Executions To Encourage ACS
 
-Source: `03-Day/FIRST.md:1033`
+Source: `03-Day/FIRST.md:1366`
 
 ```sql
 EXEC :b_branch_id := 3
@@ -547,7 +547,7 @@ SELECT /* day3_bind_branch_demo */ SUM(amount) FROM branch_transactions WHERE br
 
 ### Command ID: D3-0031 - Step 9 - Inspect Child Cursors
 
-Source: `03-Day/FIRST.md:1054`
+Source: `03-Day/FIRST.md:1394`
 
 ```sql
 SELECT sql_id,
@@ -567,7 +567,7 @@ ORDER BY sql_id, child_number;
 
 ### Command ID: D3-0032 - Step 9 - Inspect Child Cursors
 
-Source: `03-Day/FIRST.md:1072`
+Source: `03-Day/FIRST.md:1412`
 
 ```sql
 SELECT *
@@ -580,9 +580,9 @@ FROM TABLE(
 );
 ```
 
-### Command ID: D3-0033 - Slide Content
+### Command ID: D3-0033 - Hint Risk With Uneven Branch Traffic
 
-Source: `03-Day/FIRST.md:1136`
+Source: `03-Day/FIRST.md:1498`
 
 ```sql
 SELECT /*+ INDEX(branch_transactions idx_branch_txn_branch) */
@@ -593,7 +593,7 @@ WHERE branch_id = :b_branch_id;
 
 ### Command ID: D3-0034 - Hint Demonstration
 
-Source: `03-Day/FIRST.md:1161`
+Source: `03-Day/FIRST.md:1536`
 
 ```sql
 EXEC :b_branch_id := 3
@@ -609,7 +609,7 @@ FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST +PREDICATE'));
 
 ### Command ID: D3-0035 - Hint Demonstration
 
-Source: `03-Day/FIRST.md:1173`
+Source: `03-Day/FIRST.md:1548`
 
 ```sql
 EXEC :b_branch_id := 1
@@ -625,7 +625,7 @@ FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST +PREDICATE'));
 
 ### Command ID: D3-0036 - Hint Demonstration
 
-Source: `03-Day/FIRST.md:1187`
+Source: `03-Day/FIRST.md:1562`
 
 ```sql
 EXEC :b_branch_id := 3
@@ -641,7 +641,7 @@ FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST +PREDICATE'));
 
 ### Command ID: D3-0037 - Hint Demonstration
 
-Source: `03-Day/FIRST.md:1199`
+Source: `03-Day/FIRST.md:1574`
 
 ```sql
 EXEC :b_branch_id := 1
