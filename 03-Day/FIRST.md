@@ -408,7 +408,7 @@ This represents a business-critical settlement workload.
 
 ---
 
-# Step 1 - Run Critical SQL With Runtime Plan
+# Step 1 - Run Critical SQL
 
 Use `COUNT(*)` first to avoid printing many rows.
 
@@ -418,19 +418,6 @@ SELECT /* day3_spm_payment_pending */
 FROM payments
 WHERE status = 'PENDING'
 AND settlement_date = TRUNC(SYSDATE);
-```
-
-Then:
-
-```sql
-SELECT *
-FROM TABLE(
-  DBMS_XPLAN.DISPLAY_CURSOR(
-    NULL,
-    NULL,
-    'ALLSTATS LAST +PREDICATE +NOTE'
-  )
-);
 ```
 
 Expected:
@@ -445,15 +432,18 @@ The exact operation may vary, but with this data and index Oracle should usually
 
 ---
 
-# Step 2 - Find SQL ID And Plan Hash
+# Step 2 - Find SQL ID, Child Number And Plan Hash
+
+Do this before displaying the runtime plan. In SQL Developer, `DBMS_XPLAN.DISPLAY_CURSOR(NULL,NULL,...)` may pick an internal SQL Developer cursor instead of the payment query.
 
 ```sql
 COLUMN spm_sql_id NEW_VALUE spm_sql_id
+COLUMN spm_child_no NEW_VALUE spm_child_no
 COLUMN spm_plan_hash NEW_VALUE spm_plan_hash
 
 SELECT sql_id AS spm_sql_id,
+       child_number AS spm_child_no,
        plan_hash_value AS spm_plan_hash,
-       child_number,
        executions,
        buffer_gets,
        disk_reads,
@@ -470,13 +460,31 @@ Confirm:
 
 ```sql
 SELECT '&&spm_sql_id' AS sql_id,
+       '&&spm_child_no' AS child_number,
        '&&spm_plan_hash' AS plan_hash_value
 FROM dual;
 ```
 
 ---
 
-# Step 3 - Load Plan From Cursor Cache
+# Step 3 - Display Captured Runtime Plan
+
+Use the captured cursor values instead of `NULL,NULL`.
+
+```sql
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    '&&spm_sql_id',
+    &&spm_child_no,
+    'ALLSTATS LAST +PREDICATE +NOTE'
+  )
+);
+```
+
+---
+
+# Step 4 - Load Plan From Cursor Cache
 
 ```sql
 DECLARE
@@ -508,7 +516,7 @@ If plans loaded is `0`:
 
 ---
 
-# Step 4 - View SQL Plan Baseline
+# Step 5 - View SQL Plan Baseline
 
 ```sql
 SELECT sql_handle,
@@ -549,7 +557,7 @@ Record:
 
 ---
 
-# Step 5 - Rerun Same SQL And Check Baseline Note
+# Step 6 - Rerun Same SQL And Check Baseline Note
 
 ```sql
 SELECT /* day3_spm_payment_pending */
@@ -559,14 +567,36 @@ WHERE status = 'PENDING'
 AND settlement_date = TRUNC(SYSDATE);
 ```
 
-Then:
+Refresh the captured cursor values:
+
+```sql
+COLUMN spm_sql_id NEW_VALUE spm_sql_id
+COLUMN spm_child_no NEW_VALUE spm_child_no
+COLUMN spm_plan_hash NEW_VALUE spm_plan_hash
+
+SELECT sql_id AS spm_sql_id,
+       child_number AS spm_child_no,
+       plan_hash_value AS spm_plan_hash,
+       executions,
+       buffer_gets,
+       disk_reads,
+       ROUND(elapsed_time/1000000,2) elapsed_sec,
+       SUBSTR(sql_text,1,100) sql_text
+FROM v$sql
+WHERE sql_text LIKE '%day3_spm_payment_pending%'
+AND sql_text NOT LIKE '%v$sql%'
+ORDER BY last_active_time DESC
+FETCH FIRST 1 ROW ONLY;
+```
+
+Then display the exact cursor:
 
 ```sql
 SELECT *
 FROM TABLE(
   DBMS_XPLAN.DISPLAY_CURSOR(
-    NULL,
-    NULL,
+    '&&spm_sql_id',
+    &&spm_child_no,
     'ALLSTATS LAST +PREDICATE +NOTE'
   )
 );
@@ -584,11 +614,12 @@ The note text can vary by version. The important check is that the baseline exis
 
 ---
 
-# Step 6 - SPM Worksheet
+# Step 7 - SPM Worksheet
 
 | Item | Observation |
 | ---- | ----------- |
 | SQL ID | |
+| Child number | |
 | Plan hash value | |
 | Plans loaded | |
 | SQL handle | |
