@@ -1,8 +1,32 @@
-Part 1 - Create Dummy Table
+# SQL Tuning Advisor Assignment Solution - Multiple Bad SQLs
+
+# Objective
+
+This solution shows one practical way to complete the SQL Tuning Advisor assignment.
+
+It uses each trainee's own Oracle training user and creates a dummy transaction table called `STA_ASSIGN_TXN`.
+
+The evidence chain is:
+
+```text
+create dummy data
+  -> run bad SQL without indexes
+  -> capture SQL_ID
+  -> run SQL Tuning Advisor
+  -> review index recommendations
+  -> apply recommendations in training
+  -> compare before and after plans and metrics
+```
+
+---
+
+# Part 1 - Create Dummy Table
+
 Connect as your training user in SQL Developer or SQL*Plus.
 
 Run:
 
+```sql
 SET LINESIZE 220
 SET PAGESIZE 100
 SET TIMING ON
@@ -76,18 +100,33 @@ END;
 
 SELECT COUNT(*) AS row_count
 FROM sta_assign_txn;
+```
+
 Expected:
 
+```text
 ROW_COUNT = 300000
+```
+
 Important:
 
+```text
 Do not create any tuning indexes yet.
-Part 2 - Run Four Bad SQL Statements
+```
+
+---
+
+# Part 2 - Run Four Bad SQL Statements
+
 Enable runtime statistics:
 
+```sql
 ALTER SESSION SET statistics_level = ALL;
+```
+
 Run SQL 1:
 
+```sql
 SELECT /* sta_assign_q1_customer */
        transaction_id,
        customer_id,
@@ -98,14 +137,20 @@ FROM sta_assign_txn
 WHERE customer_id = 1001
 AND txn_date >= ADD_MONTHS(SYSDATE, -12)
 ORDER BY txn_date DESC;
+```
+
 Run SQL 2:
 
+```sql
 SELECT /* sta_assign_q2_status_function */
        COUNT(*) AS failed_count
 FROM sta_assign_txn
 WHERE LOWER(status) = 'failed';
+```
+
 Run SQL 3:
 
+```sql
 SELECT /* sta_assign_q3_branch_channel */
        branch_id,
        channel,
@@ -116,8 +161,11 @@ WHERE branch_id = 25
 AND channel = 'MOBILE'
 AND txn_date >= TRUNC(SYSDATE) - 90
 GROUP BY branch_id, channel;
+```
+
 Run SQL 4:
 
+```sql
 SELECT /* sta_assign_q4_amount_range */
        transaction_id,
        customer_id,
@@ -126,6 +174,13 @@ SELECT /* sta_assign_q4_amount_range */
 FROM sta_assign_txn
 WHERE amount BETWEEN 49000 AND 50000
 ORDER BY amount DESC;
+```
+
 Expected before direction:
 
+```text
 The optimizer may use TABLE ACCESS FULL because there are no supporting indexes.
+```
+
+---
+
