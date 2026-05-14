@@ -1,6 +1,6 @@
 # SQL Tuning Before/After Assignment Pack
 
-This pack contains five assignments based on Day 1, Day 2, and Day 3 of the Oracle SQL tuning training.
+This pack contains seven assignments based on Day 1, Day 2, and Day 3 of the Oracle SQL tuning training.
 
 Each assignment follows the same DBA workflow:
 
@@ -24,6 +24,7 @@ Create test data
 | 4 | SQL Tuning Advisor Validation | Day 2 SQL Tuning Advisor and invisible indexes |
 | 5 | Histogram and Skewed Data | Day 3 histograms and cardinality estimates |
 | 6 | Bind Peeking and Hint Risk | Day 3 bind peeking, ACS, and hint comparison |
+| 7 | Bind Peeking With Merchant Skew | Day 3 bind peeking, ACS, and hint comparison |
 
 ## Common Measurement Setup
 
