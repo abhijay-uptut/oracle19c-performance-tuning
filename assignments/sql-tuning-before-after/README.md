@@ -23,6 +23,7 @@ Create test data
 | 3 | AWR SQL Before/After Comparison | Day 2 AWR SQL reports |
 | 4 | SQL Tuning Advisor Validation | Day 2 SQL Tuning Advisor and invisible indexes |
 | 5 | Histogram and Skewed Data | Day 3 histograms and cardinality estimates |
+| 6 | Bind Peeking and Hint Risk | Day 3 bind peeking, ACS, and hint comparison |
 
 ## Common Measurement Setup
 
@@ -73,4 +74,3 @@ Every trainee should complete this table.
 5. Production risk:
 6. Final recommendation:
 ```
-
