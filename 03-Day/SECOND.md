@@ -110,12 +110,193 @@ ALTER SESSION SET statistics_level = ALL;
 
 # BEFORE STARTING
 
-This file assumes earlier labs created:
+This afternoon slot is self-contained.
+
+If earlier labs already created the tables, reuse them.
+If the tables are missing, run the standalone setup below before the locking lab.
+
+Required tables:
 
 ```text
 ACCOUNTS
 TRANSACTIONS
-CUSTOMERS
+```
+
+## Day 3 Afternoon Standalone Setup
+
+Create `ACCOUNTS` only if it is missing:
+
+```sql
+DECLARE
+  v_count NUMBER;
+BEGIN
+  SELECT COUNT(*)
+  INTO v_count
+  FROM user_tables
+  WHERE table_name = 'ACCOUNTS';
+
+  IF v_count = 0 THEN
+    EXECUTE IMMEDIATE '
+      CREATE TABLE accounts (
+          account_id      NUMBER PRIMARY KEY,
+          account_number  VARCHAR2(30),
+          customer_id     NUMBER,
+          branch_id       NUMBER,
+          account_type    VARCHAR2(20),
+          balance         NUMBER(14,2),
+          status          VARCHAR2(20),
+          opened_date     DATE
+      )';
+  END IF;
+END;
+/
+```
+
+Seed the known account row used by the locking labs:
+
+```sql
+MERGE INTO accounts a
+USING (
+  SELECT 101 AS account_id,
+         '1000000101' AS account_number,
+         101 AS customer_id,
+         1 AS branch_id,
+         'SAVINGS' AS account_type,
+         50000 AS balance,
+         'ACTIVE' AS status,
+         SYSDATE AS opened_date
+  FROM dual
+) src
+ON (a.account_id = src.account_id)
+WHEN MATCHED THEN
+  UPDATE SET a.balance = src.balance,
+             a.status = src.status
+WHEN NOT MATCHED THEN
+  INSERT (
+    account_id,
+    account_number,
+    customer_id,
+    branch_id,
+    account_type,
+    balance,
+    status,
+    opened_date
+  )
+  VALUES (
+    src.account_id,
+    src.account_number,
+    src.customer_id,
+    src.branch_id,
+    src.account_type,
+    src.balance,
+    src.status,
+    src.opened_date
+  );
+
+COMMIT;
+```
+
+Create `TRANSACTIONS` only if it is missing:
+
+```sql
+DECLARE
+  v_count NUMBER;
+BEGIN
+  SELECT COUNT(*)
+  INTO v_count
+  FROM user_tables
+  WHERE table_name = 'TRANSACTIONS';
+
+  IF v_count = 0 THEN
+    EXECUTE IMMEDIATE '
+      CREATE TABLE transactions (
+          transaction_id    NUMBER PRIMARY KEY,
+          customer_id       NUMBER,
+          account_id        NUMBER,
+          branch_id         NUMBER,
+          transaction_date  DATE,
+          transaction_type  VARCHAR2(20),
+          amount            NUMBER(12,2),
+          status            VARCHAR2(20),
+          remarks           VARCHAR2(200)
+      )';
+  END IF;
+END;
+/
+```
+
+Seed enough transaction data for the Branch 10 capstone if the table is empty:
+
+```sql
+DECLARE
+  v_rows NUMBER;
+BEGIN
+  SELECT COUNT(*)
+  INTO v_rows
+  FROM transactions;
+
+  IF v_rows = 0 THEN
+    FOR i IN 1..120000 LOOP
+      INSERT INTO transactions (
+        transaction_id,
+        customer_id,
+        account_id,
+        branch_id,
+        transaction_date,
+        transaction_type,
+        amount,
+        status,
+        remarks
+      )
+      VALUES (
+        i,
+        MOD(i,5000) + 1,
+        MOD(i,20000) + 1,
+        MOD(i,50) + 1,
+        SYSDATE - MOD(i,730),
+        CASE MOD(i,4)
+          WHEN 0 THEN 'DEBIT'
+          WHEN 1 THEN 'CREDIT'
+          WHEN 2 THEN 'TRANSFER'
+          ELSE 'ATM'
+        END,
+        ROUND(DBMS_RANDOM.VALUE(100,100000),2),
+        CASE
+          WHEN MOD(i,20) = 0 THEN 'FAILED'
+          ELSE 'SUCCESS'
+        END,
+        'Day 3 afternoon training transaction'
+      );
+
+      IF MOD(i,10000) = 0 THEN
+        COMMIT;
+      END IF;
+    END LOOP;
+
+    COMMIT;
+  END IF;
+END;
+/
+```
+
+Gather fresh statistics:
+
+```sql
+BEGIN
+  DBMS_STATS.GATHER_TABLE_STATS(
+    ownname => USER,
+    tabname => 'ACCOUNTS',
+    cascade => TRUE
+  );
+
+  DBMS_STATS.GATHER_TABLE_STATS(
+    ownname => USER,
+    tabname => 'TRANSACTIONS',
+    method_opt => 'FOR ALL COLUMNS SIZE AUTO',
+    cascade => TRUE
+  );
+END;
+/
 ```
 
 Validate:
@@ -123,11 +304,16 @@ Validate:
 ```sql
 SELECT table_name
 FROM user_tables
-WHERE table_name IN ('ACCOUNTS','TRANSACTIONS','CUSTOMERS')
+WHERE table_name IN ('ACCOUNTS','TRANSACTIONS')
 ORDER BY table_name;
 ```
 
-If `ACCOUNTS` or `TRANSACTIONS` is missing, run `01-Day/SECOND.md` setup first.
+Expected:
+
+```text
+ACCOUNTS
+TRANSACTIONS
+```
 
 ---
 
