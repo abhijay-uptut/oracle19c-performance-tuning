@@ -135,7 +135,7 @@ Branch 3 is a small branch with very low payment volume.
 If Oracle assumes every branch has the same number of rows, it may choose the wrong access path.
 ```
 
-# Slide 1 - Day 3 Opening
+# Slide 1 - Day 3 Opening (9:00 AM - 9:05 AM)
 
 ## Time: 9:00 AM - 9:05 AM
 
@@ -177,7 +177,7 @@ If the data is uneven and Oracle does not understand that unevenness, the plan c
 
 ---
 
-# Slide 2 - What Skewed Data Means
+# Slide 2 - What Skewed Data Means (9:05 AM - 9:15 AM)
 
 ## Time: 9:05 AM - 9:15 AM
 
@@ -223,7 +223,7 @@ Without a histogram, it may estimate branch_id values too evenly.
 With a histogram, Oracle can understand that branch 1 is much larger than branch 3.
 ```
 
-# Slide 3 - What A Histogram Tells Oracle
+# Slide 3 - What A Histogram Tells Oracle (9:15 AM - 9:20 AM)
 
 ## Time: 9:15 AM - 9:20 AM
 
@@ -259,7 +259,7 @@ Better estimates for branch, status, product, or customer segments that are unev
 
 ---
 
-# Slide 4 - Why DBAs Check Histograms
+# Slide 4 - Why DBAs Check Histograms (9:20 AM - 9:25 AM)
 
 ## Time: 9:20 AM - 9:25 AM
 
@@ -305,7 +305,7 @@ Operations wants failed transactions quickly because failed transactions may nee
 The DBA wants Oracle to understand that FAILED is rare and SUCCESS is common.
 ```
 
-# Slide 5 - Histogram Demo Story
+# Slide 5 - Histogram Demo Story (9:25 AM - 9:45 AM)
 
 ## Time: 9:25 AM - 9:45 AM
 
@@ -606,7 +606,7 @@ The overnight payment settlement job normally finishes before branches open.
 After a statistics refresh, the same payment query takes much longer and delays operational reporting.
 ```
 
-# Slide 6 - Banking Plan Regression Scenario
+# Slide 6 - Banking Plan Regression Scenario (9:45 AM - 9:50 AM)
 
 ## Time: 9:45 AM - 9:50 AM
 
@@ -661,7 +661,7 @@ The DBA finds yesterday's plan was good and today's plan is risky.
 The bank needs a controlled way to keep using the known good plan while investigating the root cause.
 ```
 
-# Slide 7 - What SPM Does
+# Slide 7 - What SPM Does (9:50 AM - 9:53 AM)
 
 ## Time: 9:50 AM - 9:53 AM
 
@@ -691,7 +691,7 @@ stabilize production first, then tune with evidence
 
 ---
 
-# Slide 8 - Key Terms
+# Slide 8 - Key Terms (9:53 AM - 9:56 AM)
 
 ## Time: 9:53 AM - 9:56 AM
 
@@ -726,7 +726,7 @@ In production, fixed plans can be useful during emergencies, but they can also b
 
 ---
 
-# Slide 9 - When To Use Baselines
+# Slide 9 - When To Use Baselines (9:56 AM - 10:00 AM)
 
 ## Time: 9:56 AM - 10:00 AM
 
@@ -769,7 +769,7 @@ Most payments are already settled, while a smaller set is pending or failed.
 The pending-today query represents the SQL operations staff cares about.
 ```
 
-# Slide 10 - Lab Objective
+# Slide 10 - Lab Objective (10:00 AM - 10:10 AM)
 
 ## Time: 10:00 AM - 10:10 AM
 
@@ -963,7 +963,7 @@ The payment query is business-critical.
 The DBA wants to capture the known good plan so a future stats refresh, patch, or index change does not silently replace it with a bad plan.
 ```
 
-# Slide 11 - Critical SQL
+# Slide 11 - Critical SQL (10:10 AM - 10:25 AM)
 
 ## Time: 10:10 AM - 10:25 AM
 
@@ -1265,7 +1265,7 @@ Oracle discovers a new plan for the settlement query.
 The DBA must decide whether the new plan is actually better before allowing production to use it.
 ```
 
-# Slide 12 - Plan Evolution
+# Slide 12 - Plan Evolution (10:25 AM - 10:27 AM)
 
 ## Time: 10:25 AM - 10:27 AM
 
@@ -1326,7 +1326,7 @@ This is optional because the lab may not have a second candidate plan. Use it to
 
 ---
 
-# Slide 13 - Fixed Baselines
+# Slide 13 - Fixed Baselines (10:27 AM - 10:30 AM)
 
 ## Time: 10:27 AM - 10:30 AM
 
@@ -1431,7 +1431,7 @@ For a small rural branch it returns very few rows.
 The SQL text is the same, but the best plan may be different.
 ```
 
-# Slide 14 - Same SQL, Different Values
+# Slide 14 - Same SQL, Different Values (10:45 AM - 10:52 AM)
 
 ## Time: 10:45 AM - 10:52 AM
 
@@ -1478,7 +1478,7 @@ That is where bind peeking and adaptive cursor sharing become important."
 
 ---
 
-# Slide 15 - Key Concepts
+# Slide 15 - Key Concepts (10:52 AM - 11:00 AM)
 
 ## Time: 10:52 AM - 11:00 AM
 
@@ -1516,7 +1516,7 @@ Users pass one branch_id at a time.
 The DBA must explain why a query for a large branch needs a different access pattern than a query for a small branch.
 ```
 
-# Slide 16 - Lab Objective
+# Slide 16 - Lab Objective (11:00 AM - 11:35 AM)
 
 ## Time: 11:00 AM - 11:35 AM
 
@@ -1944,7 +1944,7 @@ An application team asks the DBA to add an INDEX hint because the small-branch r
 The DBA must test whether that same hint damages the head-office branch report.
 ```
 
-# Slide 17 - Why Hints Are Risky With Skew
+# Slide 17 - Why Hints Are Risky With Skew (11:35 AM - 11:43 AM)
 
 ## Time: 11:35 AM - 11:43 AM
 
@@ -2057,7 +2057,7 @@ What happens on month-end when large branches process even more rows?
 
 ---
 
-# Slide 18 - Tool Selection Table
+# Slide 18 - Tool Selection Table (11:43 AM - 11:50 AM)
 
 ## Time: 11:43 AM - 11:50 AM
 
@@ -2105,7 +2105,7 @@ The incident bridge asks for a clear DBA recommendation.
 The DBA must explain whether the issue is plan regression, bind skew, missing stats, unsafe hints, or bad SQL design.
 ```
 
-# Slide 19 - Key Takeaways
+# Slide 19 - Key Takeaways (11:50 AM - 12:00 PM)
 
 ## Time: 11:50 AM - 12:00 PM
 

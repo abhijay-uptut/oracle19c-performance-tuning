@@ -4,6 +4,8 @@ Generated from the current `03-Day/FIRST.md` and `03-Day/SECOND.md` files.
 
 Use the command IDs to identify commands during delivery. Commands are listed in source order: first `FIRST.md`, then `SECOND.md`. Teaching-only SQL fragments are intentionally excluded so each block is copy/paste runnable or clearly uses placeholders.
 
+Current high-level sequence: histogram demo, payment workload and SQL Plan Management, bind variables and Adaptive Cursor Sharing, hint comparison, locking diagnosis, short-lived incidents, and final capstone.
+
 ---
 
 ## Morning Slot - `03-Day/FIRST.md`
@@ -862,7 +864,7 @@ ORDER BY table_name;
 
 ### Command ID: D3-0052 - Query 1 - Blocked Sessions
 
-Source: `03-Day/SECOND.md:330`
+Source: `03-Day/SECOND.md:443`
 
 ```sql
 SELECT sid,
@@ -880,7 +882,7 @@ WHERE blocking_session IS NOT NULL;
 
 ### Command ID: D3-0053 - Query 2 - Blocker/Waiter Relationship
 
-Source: `03-Day/SECOND.md:361`
+Source: `03-Day/SECOND.md:474`
 
 ```sql
 SELECT *
@@ -892,7 +894,7 @@ FROM dba_waiters;
 
 ### Command ID: D3-0054 - Query 3 - Locked Objects
 
-Source: `03-Day/SECOND.md:386`
+Source: `03-Day/SECOND.md:499`
 
 ```sql
 SELECT lo.session_id,
@@ -911,7 +913,7 @@ ORDER BY lo.session_id, o.object_name;
 
 ### Command ID: D3-0055 - Query 4 - Blocker Details
 
-Source: `03-Day/SECOND.md:418`
+Source: `03-Day/SECOND.md:531`
 
 ```sql
 SELECT s.sid,
@@ -937,7 +939,7 @@ WHERE s.sid IN (
 
 ### Command ID: D3-0056 - Query 5 - SQL Text For Waiter And Blocker
 
-Source: `03-Day/SECOND.md:455`
+Source: `03-Day/SECOND.md:568`
 
 ```sql
 SELECT s.sid,
@@ -961,7 +963,7 @@ OR s.sid IN (
 
 ### Command ID: D3-0057 - Step 1 - Setup Account Row
 
-Source: `03-Day/SECOND.md:554`
+Source: `03-Day/SECOND.md:761`
 
 ```sql
 MERGE INTO accounts a
@@ -1007,7 +1009,7 @@ COMMIT;
 
 ### Command ID: D3-0058 - Step 1 - Setup Account Row
 
-Source: `03-Day/SECOND.md:598`
+Source: `03-Day/SECOND.md:805`
 
 ```sql
 SELECT account_id, account_number, balance, status
@@ -1017,7 +1019,7 @@ WHERE account_id = 101;
 
 ### Command ID: D3-0059 - Step 2 - Session 1 Creates The Lock
 
-Source: `03-Day/SECOND.md:624`
+Source: `03-Day/SECOND.md:831`
 
 ```sql
 BEGIN
@@ -1036,7 +1038,7 @@ WHERE account_id = 101;
 
 ### Command ID: D3-0060 - Step 3 - Session 2 Becomes The Waiter
 
-Source: `03-Day/SECOND.md:667`
+Source: `03-Day/SECOND.md:874`
 
 ```sql
 BEGIN
@@ -1055,7 +1057,7 @@ WHERE account_id = 101;
 
 ### Command ID: D3-0061 - Step 4 - Session 3 Diagnoses The Block
 
-Source: `03-Day/SECOND.md:719`
+Source: `03-Day/SECOND.md:926`
 
 ```sql
 SELECT sid,
@@ -1076,7 +1078,7 @@ ORDER BY sid;
 
 ### Command ID: D3-0062 - Step 5 - Session 3 Finds Locked Object
 
-Source: `03-Day/SECOND.md:768`
+Source: `03-Day/SECOND.md:975`
 
 ```sql
 SELECT lo.session_id,
@@ -1095,7 +1097,7 @@ WHERE o.object_name = 'ACCOUNTS';
 
 ### Command ID: D3-0063 - Step 6 - Session 3 Checks Transaction Age
 
-Source: `03-Day/SECOND.md:807`
+Source: `03-Day/SECOND.md:1014`
 
 ```sql
 SELECT s.sid,
@@ -1114,7 +1116,7 @@ WHERE s.module = 'DAY3_LOCK_LAB';
 
 ### Command ID: D3-0064 - Step 7 - Resolve The Lab Lock
 
-Source: `03-Day/SECOND.md:858`
+Source: `03-Day/SECOND.md:1065`
 
 ```sql
 COMMIT;
@@ -1122,7 +1124,7 @@ COMMIT;
 
 ### Command ID: D3-0065 - Step 7 - Resolve The Lab Lock
 
-Source: `03-Day/SECOND.md:864`
+Source: `03-Day/SECOND.md:1071`
 
 ```sql
 ROLLBACK;
@@ -1130,7 +1132,7 @@ ROLLBACK;
 
 ### Command ID: D3-0066 - Step 7 - Resolve The Lab Lock
 
-Source: `03-Day/SECOND.md:876`
+Source: `03-Day/SECOND.md:1083`
 
 ```sql
 COMMIT;
@@ -1138,7 +1140,7 @@ COMMIT;
 
 ### Command ID: D3-0067 - Optional Emergency Command
 
-Source: `03-Day/SECOND.md:886`
+Source: `03-Day/SECOND.md:1093`
 
 ```sql
 ALTER SYSTEM KILL SESSION 'sid,serial#' IMMEDIATE;
@@ -1146,7 +1148,7 @@ ALTER SYSTEM KILL SESSION 'sid,serial#' IMMEDIATE;
 
 ### Command ID: D3-0068 - Active Session Snapshot Query
 
-Source: `03-Day/SECOND.md:986`
+Source: `03-Day/SECOND.md:1229`
 
 ```sql
 SELECT sid,
@@ -1168,7 +1170,7 @@ ORDER BY seconds_in_wait DESC;
 
 ### Command ID: D3-0069 - Active Session Snapshot Query
 
-Source: `03-Day/SECOND.md:1013`
+Source: `03-Day/SECOND.md:1256`
 
 ```sql
 SELECT sample_time,
@@ -1186,7 +1188,7 @@ ORDER BY sample_time DESC;
 
 ### Command ID: D3-0070 - Step 1 - Create Hot Branch Pattern
 
-Source: `03-Day/SECOND.md:1169`
+Source: `03-Day/SECOND.md:1448`
 
 ```sql
 UPDATE transactions
@@ -1198,7 +1200,7 @@ COMMIT;
 
 ### Command ID: D3-0071 - Step 1 - Create Hot Branch Pattern
 
-Source: `03-Day/SECOND.md:1179`
+Source: `03-Day/SECOND.md:1458`
 
 ```sql
 BEGIN
@@ -1214,7 +1216,7 @@ END;
 
 ### Command ID: D3-0072 - Step 1 - Create Hot Branch Pattern
 
-Source: `03-Day/SECOND.md:1193`
+Source: `03-Day/SECOND.md:1472`
 
 ```sql
 SELECT branch_id, COUNT(*) AS row_count
@@ -1226,7 +1228,7 @@ ORDER BY branch_id;
 
 ### Command ID: D3-0073 - Step 2 - Make Before Plan Clean
 
-Source: `03-Day/SECOND.md:1233`
+Source: `03-Day/SECOND.md:1512`
 
 ```sql
 DECLARE
@@ -1248,7 +1250,7 @@ ALTER SESSION SET optimizer_use_invisible_indexes = FALSE;
 
 ### Command ID: D3-0074 - Optional - AWR Start Snapshot
 
-Source: `03-Day/SECOND.md:1264`
+Source: `03-Day/SECOND.md:1543`
 
 ```sql
 EXEC DBMS_WORKLOAD_REPOSITORY.CREATE_SNAPSHOT;
@@ -1256,7 +1258,7 @@ EXEC DBMS_WORKLOAD_REPOSITORY.CREATE_SNAPSHOT;
 
 ### Command ID: D3-0075 - Problem Query
 
-Source: `03-Day/SECOND.md:1310`
+Source: `03-Day/SECOND.md:1623`
 
 ```sql
 SELECT /* capstone_dashboard_before */
@@ -1268,7 +1270,7 @@ ORDER BY transaction_date DESC;
 
 ### Command ID: D3-0076 - Run Before Query Safely
 
-Source: `03-Day/SECOND.md:1346`
+Source: `03-Day/SECOND.md:1659`
 
 ```sql
 SET AUTOTRACE TRACEONLY STATISTICS
@@ -1284,7 +1286,7 @@ SET AUTOTRACE OFF
 
 ### Command ID: D3-0077 - Capture Before Plan
 
-Source: `03-Day/SECOND.md:1369`
+Source: `03-Day/SECOND.md:1682`
 
 ```sql
 EXPLAIN PLAN FOR
@@ -1299,7 +1301,7 @@ SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
 
 ### Command ID: D3-0078 - Better Business Query
 
-Source: `03-Day/SECOND.md:1432`
+Source: `03-Day/SECOND.md:1782`
 
 ```sql
 SELECT /* capstone_dashboard_after */
@@ -1319,7 +1321,7 @@ FETCH FIRST 100 ROWS ONLY;
 
 ### Command ID: D3-0079 - Create Supporting Index Safely
 
-Source: `03-Day/SECOND.md:1466`
+Source: `03-Day/SECOND.md:1816`
 
 ```sql
 DECLARE
@@ -1343,7 +1345,7 @@ END;
 
 ### Command ID: D3-0080 - Create Supporting Index Safely
 
-Source: `03-Day/SECOND.md:1488`
+Source: `03-Day/SECOND.md:1838`
 
 ```sql
 BEGIN
@@ -1358,7 +1360,7 @@ END;
 
 ### Command ID: D3-0081 - Run After Query
 
-Source: `03-Day/SECOND.md:1510`
+Source: `03-Day/SECOND.md:1860`
 
 ```sql
 SET AUTOTRACE TRACEONLY STATISTICS
@@ -1382,7 +1384,7 @@ SET AUTOTRACE OFF
 
 ### Command ID: D3-0082 - Capture After Runtime Plan
 
-Source: `03-Day/SECOND.md:1548`
+Source: `03-Day/SECOND.md:1898`
 
 ```sql
 SELECT /* capstone_dashboard_after_plan */
@@ -1414,7 +1416,7 @@ FROM TABLE(
 
 ### Command ID: D3-0083 - Create A Controlled Lock
 
-Source: `03-Day/SECOND.md:1634`
+Source: `03-Day/SECOND.md:2014`
 
 ```sql
 MERGE INTO accounts a
@@ -1460,7 +1462,7 @@ COMMIT;
 
 ### Command ID: D3-0084 - Create A Controlled Lock
 
-Source: `03-Day/SECOND.md:1684`
+Source: `03-Day/SECOND.md:2064`
 
 ```sql
 UPDATE /* capstone_lock_blocker */
@@ -1471,7 +1473,7 @@ WHERE account_id = 101;
 
 ### Command ID: D3-0085 - Create A Controlled Lock
 
-Source: `03-Day/SECOND.md:1701`
+Source: `03-Day/SECOND.md:2081`
 
 ```sql
 UPDATE /* capstone_lock_waiter */
@@ -1482,7 +1484,7 @@ WHERE account_id = 101;
 
 ### Command ID: D3-0086 - Diagnose Capstone Lock
 
-Source: `03-Day/SECOND.md:1727`
+Source: `03-Day/SECOND.md:2107`
 
 ```sql
 SELECT sid,
@@ -1500,7 +1502,7 @@ WHERE blocking_session IS NOT NULL;
 
 ### Command ID: D3-0087 - Diagnose Capstone Lock
 
-Source: `03-Day/SECOND.md:1750`
+Source: `03-Day/SECOND.md:2130`
 
 ```sql
 SELECT lo.session_id,
@@ -1517,7 +1519,7 @@ WHERE o.object_name = 'ACCOUNTS';
 
 ### Command ID: D3-0088 - Diagnose Capstone Lock
 
-Source: `03-Day/SECOND.md:1772`
+Source: `03-Day/SECOND.md:2152`
 
 ```sql
 -- In Session 1
@@ -1526,7 +1528,7 @@ ROLLBACK;
 
 ### Command ID: D3-0089 - Optional - AWR End Snapshot
 
-Source: `03-Day/SECOND.md:1822`
+Source: `03-Day/SECOND.md:2237`
 
 ```sql
 EXEC DBMS_WORKLOAD_REPOSITORY.CREATE_SNAPSHOT;

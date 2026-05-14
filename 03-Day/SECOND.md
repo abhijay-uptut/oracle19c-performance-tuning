@@ -168,7 +168,7 @@ If the SQL is waiting on a lock, adding an index will not fix the immediate prob
 
 ---
 
-# Slide 1 - Core Idea
+# Slide 1 - Core Idea (1:00 PM - 1:05 PM)
 
 ## Time: 1:00 PM - 1:05 PM
 
@@ -214,7 +214,7 @@ Before recommending an index, SQL rewrite, or session kill, first prove whether 
 
 ---
 
-# Slide 2 - Definitions
+# Slide 2 - Definitions (1:05 PM - 1:10 PM)
 
 ## Time: 1:05 PM - 1:10 PM
 
@@ -230,9 +230,9 @@ Before recommending an index, SQL rewrite, or session kill, first prove whether 
 
 ---
 
-# Slide 3 - Banking Risk Areas
+# Slide 3 - Banking Risk Areas (1:10 PM - 1:12 PM)
 
-## Time: 1:10 PM - 1:15 PM
+## Time: 1:10 PM - 1:12 PM
 
 ## Slide Content
 
@@ -258,6 +258,46 @@ DBA action:
 ```text
 When the complaint mentions stuck posting, stuck reversal, or stuck balance update,
 check locks and waiters before changing SQL.
+```
+
+---
+
+# Slide 4 - DBA First Response Flow (1:12 PM - 1:15 PM)
+
+## Time: 1:12 PM - 1:15 PM
+
+## Slide Content
+
+# First Separate Work From Waiting
+
+Banking complaint:
+
+```text
+Payment posting is slow.
+```
+
+DBA triage:
+
+| Question | Evidence | Meaning |
+| -------- | -------- | ------- |
+| Is the session active? | `V$SESSION.STATUS` | session is running or waiting |
+| What is it waiting on? | `WAIT_CLASS`, `EVENT` | lock, I/O, CPU, network, idle |
+| Is there a blocker? | `BLOCKING_SESSION` | locking incident |
+| What SQL is involved? | `SQL_ID` | plan/workload investigation |
+| What business module? | `MODULE`, `ACTION` | teller, payment, batch, dashboard |
+
+Why we study this:
+
+```text
+The wrong first assumption wastes incident time.
+Locking needs blocker resolution.
+Slow execution needs SQL/workload tuning.
+```
+
+DBA benefit:
+
+```text
+You can explain the incident path before proposing a fix.
 ```
 
 ---
@@ -294,9 +334,9 @@ This is the production skill that prevents blind session killing.
 
 ---
 
-# Slide 4 - Views We Use
+# Slide 5 - Views We Use (1:15 PM - 1:18 PM)
 
-## Time: 1:15 PM - 1:35 PM
+## Time: 1:15 PM - 1:18 PM
 
 ## Slide Content
 
@@ -313,6 +353,79 @@ Banking example:
 ```text
 If ACCOUNTS is locked, the incident may affect balance update, withdrawal,
 deposit posting, reversal, or interest correction.
+```
+
+---
+
+# Slide 6 - V$SESSION Is The Starting Point (1:18 PM - 1:25 PM)
+
+## Time: 1:18 PM - 1:25 PM
+
+## Slide Content
+
+# Start With Live Sessions
+
+Real banking example:
+
+```text
+The teller says "save is spinning".
+The DBA checks whether the session is waiting on row lock contention.
+```
+
+Key columns:
+
+| Column | Banking Use |
+| ------ | ----------- |
+| `SID`, `SERIAL#` | identify the exact session |
+| `STATUS` | active, inactive, or waiting |
+| `BLOCKING_SESSION` | names the blocker |
+| `WAIT_CLASS` | shows type of wait |
+| `EVENT` | shows row lock, I/O, CPU wait, etc. |
+| `SQL_ID` | connects wait to SQL |
+| `MODULE`, `ACTION` | connects session to application feature |
+
+Why we study this:
+
+```text
+This is the fastest way to decide whether the issue is lock diagnosis or SQL tuning.
+```
+
+---
+
+# Slide 7 - Build The Evidence Chain (1:25 PM - 1:35 PM)
+
+## Time: 1:25 PM - 1:35 PM
+
+## Slide Content
+
+# Complaint To Proof
+
+Incident evidence path:
+
+```text
+User complaint
+-> waiting session
+-> blocking session
+-> locked object
+-> open transaction
+-> business owner decision
+```
+
+Banking example:
+
+```text
+Complaint: customer account update is stuck.
+Waiter: branch posting session.
+Blocker: teller correction session.
+Object: ACCOUNTS.
+Open transaction: uncommitted balance update.
+Resolution: teller supervisor confirms commit or rollback.
+```
+
+DBA benefit:
+
+```text
+You can justify action with evidence instead of guessing or killing sessions blindly.
 ```
 
 ---
@@ -508,9 +621,9 @@ After this lab, the DBA should be able to:
 
 ---
 
-# Slide 5 - Lab Requirement
+# Slide 8 - Lab Requirement (1:35 PM - 1:38 PM)
 
-## Time: 1:35 PM - 2:10 PM
+## Time: 1:35 PM - 1:38 PM
 
 ## Slide Content
 
@@ -530,6 +643,100 @@ Learning goal:
 
 ```text
 Do not guess. Use database evidence to explain why the transaction is stuck.
+```
+
+---
+
+# Slide 9 - Lock Timeline (1:38 PM - 1:47 PM)
+
+## Time: 1:38 PM - 1:47 PM
+
+## Slide Content
+
+# What Happens In The Lab
+
+Timeline:
+
+| Time | Session | Banking Action | Database Effect |
+| ---- | ------- | -------------- | --------------- |
+| 1 | Session 1 | teller adjusts balance | row is locked |
+| 2 | Session 1 | no commit yet | lock remains |
+| 3 | Session 2 | another update starts | session waits |
+| 4 | Session 3 | DBA investigates | blocker/waiter found |
+| 5 | Session 1 | commit or rollback | waiter continues |
+
+Why we study this:
+
+```text
+Many production blockers are simple: someone changed data and did not finish the transaction.
+```
+
+DBA benefit:
+
+```text
+You learn the exact sequence that creates a row-lock incident.
+```
+
+---
+
+# Slide 10 - Inactive Can Still Block (1:47 PM - 1:57 PM)
+
+## Time: 1:47 PM - 1:57 PM
+
+## Slide Content
+
+# Inactive Does Not Mean Harmless
+
+Banking example:
+
+```text
+A teller updates a balance, then leaves the screen idle.
+The session may show INACTIVE.
+The transaction can still be open.
+The lock can still block payment posting.
+```
+
+DBA rule:
+
+```text
+Always check V$TRANSACTION before assuming an inactive session is safe.
+```
+
+Why this helps tuning:
+
+```text
+If the SQL is waiting on a lock, tuning the execution plan will not solve the incident.
+```
+
+---
+
+# Slide 11 - Safe Resolution Choices (1:57 PM - 2:10 PM)
+
+## Time: 1:57 PM - 2:10 PM
+
+## Slide Content
+
+# Resolve With Business Context
+
+Resolution options:
+
+| Action | When It Fits | Risk |
+| ------ | ------------ | ---- |
+| Commit | transaction is valid | makes change permanent |
+| Rollback | transaction should be cancelled | undo may take time |
+| Kill session | emergency and approved | can rollback important work |
+| Wait/escalate | business owner unavailable | user remains blocked |
+
+Banking example:
+
+```text
+Do not kill a payment posting session without knowing whether it is mid-settlement.
+```
+
+DBA benefit:
+
+```text
+You protect data correctness while resolving performance symptoms.
 ```
 
 ---
@@ -940,9 +1147,9 @@ Ask for the exact time window and check historical evidence if available.
 
 ---
 
-# Slide 6 - If The Problem Disappears
+# Slide 12 - If The Problem Disappears (2:10 PM - 2:17 PM)
 
-## Time: 2:10 PM - 2:25 PM
+## Time: 2:10 PM - 2:17 PM
 
 ## Slide Content
 
@@ -968,6 +1175,42 @@ DBA goal:
 
 ```text
 Reconstruct what happened using snapshots, samples, logs, and SQL IDs.
+```
+
+---
+
+# Slide 13 - Current Views Vs Historical Evidence (2:17 PM - 2:25 PM)
+
+## Time: 2:17 PM - 2:25 PM
+
+## Slide Content
+
+# Choose Evidence By Timing
+
+If the issue is happening now:
+
+```text
+Use V$SESSION, V$SQL, V$LOCKED_OBJECT, V$TRANSACTION.
+```
+
+If the issue already disappeared:
+
+```text
+Use complaint time window, AWR/ASH if licensed, application logs, monitoring graphs.
+```
+
+Banking example:
+
+```text
+Salary upload was slow from 2:05 PM to 2:08 PM.
+At 2:20 PM everything is normal.
+The DBA needs historical samples, not only current sessions.
+```
+
+DBA benefit:
+
+```text
+You avoid closing incidents as "not reproducible" when evidence may still exist.
 ```
 
 ---
@@ -1083,9 +1326,9 @@ understand complaint -> collect evidence -> fix SQL/access path -> diagnose lock
 
 ---
 
-# Slide 7 - Business Scenario
+# Slide 14 - Business Scenario (2:45 PM - 2:55 PM)
 
-## Time: 2:45 PM - 3:05 PM
+## Time: 2:45 PM - 2:55 PM
 
 ## Slide Content
 
@@ -1112,6 +1355,42 @@ Is the dashboard slow because it reads too much data?
 Is the plan doing unnecessary work?
 Is the stuck account update blocked?
 What evidence proves the fix helped?
+```
+
+---
+
+# Slide 15 - Capstone DBA Mission (2:55 PM - 3:05 PM)
+
+## Time: 2:55 PM - 3:05 PM
+
+## Slide Content
+
+# What The DBA Must Practice
+
+The capstone is not one command.
+
+DBA mission:
+
+1. restate the business complaint
+2. identify whether each symptom is slow work or waiting
+3. collect before metrics
+4. read the plan
+5. choose a minimal fix
+6. validate after metrics
+7. diagnose the lock separately
+8. write a recommendation with rollback
+
+Banking example:
+
+```text
+The dashboard and account update happen at the same time,
+but they are not the same root cause.
+```
+
+DBA benefit:
+
+```text
+You practice separating multiple symptoms inside one production incident.
 ```
 
 ---
@@ -1295,6 +1574,40 @@ This section teaches the DBA to prove the problem before changing anything:
 
 ---
 
+# Slide 16 - Workload Evidence Checklist (3:20 PM - 3:35 PM)
+
+## Time: 3:20 PM - 3:35 PM
+
+## Slide Content
+
+# Prove The Dashboard Problem
+
+For the Branch 10 dashboard, capture:
+
+| Evidence | Why It Helps |
+| -------- | ------------ |
+| elapsed time | user-facing delay |
+| consistent gets | logical work |
+| physical reads | storage pressure |
+| rows processed | data volume |
+| plan shape | access path and sort |
+| query requirement | whether SQL asks for too much data |
+
+Banking example:
+
+```text
+If the screen needs latest 100 transactions,
+reading all historical Branch 10 transactions is wasted work.
+```
+
+DBA benefit:
+
+```text
+You can prove whether the fix should be query rewrite, index, or both.
+```
+
+---
+
 # Problem Query
 
 Dashboard query:
@@ -1415,6 +1728,43 @@ This section teaches two DBA habits:
 
 * fix the business query first so it asks for the right data
 * then create the smallest useful index to support that query
+
+---
+
+# Slide 17 - Fix Decision Tree (3:35 PM - 4:10 PM)
+
+## Time: 3:35 PM - 4:10 PM
+
+## Slide Content
+
+# Fix The Requirement Before The Plan
+
+DBA decision path:
+
+```text
+Does the SQL return more data than the screen needs?
+Yes -> rewrite/filter/limit first.
+
+Does the filtered query have a matching access path?
+No -> add targeted index.
+
+Did the fix reduce work?
+Validate with before/after metrics.
+```
+
+Banking example:
+
+```text
+Branch manager needs recent transactions.
+The fix is not only an index.
+The query must stop asking for unlimited history.
+```
+
+DBA benefit:
+
+```text
+You avoid creating indexes to support bad business queries.
+```
 
 ---
 
@@ -1617,6 +1967,36 @@ The DBA must not assume every symptom has the same root cause.
 
 ---
 
+# Slide 18 - Separate The Lock From The Slow Query (4:10 PM - 4:35 PM)
+
+## Time: 4:10 PM - 4:35 PM
+
+## Slide Content
+
+# One Incident, Two Causes
+
+Capstone symptoms:
+
+| Symptom | Likely Evidence | DBA Track |
+| ------- | --------------- | --------- |
+| dashboard slow | high reads, sort, many rows | SQL tuning |
+| account update stuck | blocking session, row lock wait | lock diagnosis |
+
+Banking example:
+
+```text
+Do not blame the dashboard index for a stuck account update.
+Do not blame the lock for a dashboard query that reads too much data.
+```
+
+DBA benefit:
+
+```text
+You learn to split mixed incidents into separate evidence-backed findings.
+```
+
+---
+
 # Create A Controlled Lock
 
 Use the same lock lab pattern from Slot 3.
@@ -1808,6 +2188,41 @@ Before/after numbers and a short incident report help the business trust the rec
 
 ---
 
+# Slide 19 - Validation And Report Standard (4:35 PM - 4:55 PM)
+
+## Time: 4:35 PM - 4:55 PM
+
+## Slide Content
+
+# A Fix Is Not Finished Until It Is Proven
+
+DBA report must include:
+
+* business complaint
+* evidence source
+* SQL or session involved
+* root cause
+* change made
+* before metrics
+* after metrics
+* risk
+* rollback plan
+
+Banking example:
+
+```text
+"Created index" is not enough.
+The DBA must show fewer reads, fewer rows processed, lock resolved, and rollback plan.
+```
+
+DBA benefit:
+
+```text
+You communicate like a production incident owner, not just a command executor.
+```
+
+---
+
 # Optional - AWR End Snapshot
 
 Use only if AWR was started earlier:
@@ -1910,7 +2325,263 @@ What improved?
 
 ---
 
-# SECTION 11 - FINAL TRAINING CLOSE (4:55 - 5:00)
+# SECTION 11 - FOUR DBA CAPSTONE PROJECTS WITH SOLUTIONS
+
+These are assignment options based on the full Day 3 material. Use them as final individual or group exercises, post-class practice, or assessment material.
+
+---
+
+# Capstone Project 1 - Histogram And Skewed Payment Status
+
+## Assignment For DBA
+
+Business scenario:
+
+```text
+The fraud operations team queries failed transactions.
+Most transactions are SUCCESS, but FAILED transactions are rare and operationally important.
+After a stats job, the failed-transaction query has unstable estimates.
+```
+
+DBA tasks:
+
+1. Prove whether `TXN_STATUS` is skewed.
+2. Check whether a histogram exists.
+3. Run the failed-transaction query and compare `E-Rows` vs `A-Rows`.
+4. Gather histogram statistics if needed.
+5. Rerun the query and compare estimates.
+6. Prepare a recommendation.
+
+Expected evidence:
+
+```text
+row-count distribution
+USER_TAB_COL_STATISTICS histogram value
+runtime plan before histogram
+runtime plan after histogram
+E-Rows vs A-Rows comparison
+```
+
+## Solution
+
+Recommended DBA conclusion:
+
+```text
+The column is skewed because SUCCESS is very common and FAILED is much less common.
+Without a histogram, Oracle may estimate status values too evenly.
+After gathering a frequency histogram, Oracle can estimate FAILED more accurately.
+The fix is not "add random indexes"; the first fix is accurate statistics for skewed data.
+```
+
+Production recommendation:
+
+```text
+Keep histogram stats on transaction-status columns where skew affects critical queries.
+Monitor after stats refresh because histogram changes can affect plans.
+```
+
+Rollback:
+
+```text
+Regather stats with SIZE 1 or restore previous stats if the histogram causes regression.
+```
+
+---
+
+# Capstone Project 2 - Payment Settlement Plan Baseline
+
+## Assignment For DBA
+
+Business scenario:
+
+```text
+A payment settlement query was fast before a deployment.
+After a stats refresh or patch, the plan changed and settlement monitoring slowed down.
+The bank needs plan stability while the DBA investigates.
+```
+
+DBA tasks:
+
+1. Run the tagged payment settlement SQL.
+2. Capture `SQL_ID`, `CHILD_NUMBER`, and `PLAN_HASH_VALUE`.
+3. Display the runtime plan.
+4. Load the plan into SQL Plan Management.
+5. Verify the baseline is enabled and accepted.
+6. Rerun the SQL and check for baseline usage.
+7. Document rollback.
+
+Expected evidence:
+
+```text
+SQL ID
+plan hash value
+DBMS_XPLAN output
+DBA_SQL_PLAN_BASELINES row
+baseline enabled/accepted/fixed status
+rollback SQL handle and plan name
+```
+
+## Solution
+
+Recommended DBA conclusion:
+
+```text
+The SQL is business-critical and suitable for a baseline because plan stability protects payment settlement operations.
+The captured plan is accepted and available to Oracle.
+The baseline should be reviewed later, not forgotten permanently.
+```
+
+Production recommendation:
+
+```text
+Use SQL plan baselines for critical payment, settlement, batch, and regulatory SQL.
+Do not baseline every SQL.
+Do not use fixed baselines unless emergency containment requires it.
+```
+
+Rollback:
+
+```text
+Use DBMS_SPM.DROP_SQL_PLAN_BASELINE with the SQL handle and plan name.
+```
+
+---
+
+# Capstone Project 3 - Branch Report Bind Peeking And ACS
+
+## Assignment For DBA
+
+Business scenario:
+
+```text
+The same branch transaction report is used by all branches.
+For a small branch it is fast.
+For the city branch it is slow.
+The application uses a bind variable for BRANCH_ID.
+```
+
+DBA tasks:
+
+1. Prove branch transaction data is skewed.
+2. Confirm histogram statistics on `BRANCH_ID`.
+3. Run the bind SQL for a rare branch and a common branch.
+4. Display runtime plans and peeked binds.
+5. Inspect child cursors in `V$SQL`.
+6. Check `IS_BIND_SENSITIVE` and `IS_BIND_AWARE`.
+7. Explain whether one forced hint is safe.
+
+Expected evidence:
+
+```text
+branch row-count distribution
+histogram value for BRANCH_ID
+plan for rare branch
+plan for common branch
+child cursor list
+bind sensitive / bind aware flags
+hint comparison notes
+```
+
+## Solution
+
+Recommended DBA conclusion:
+
+```text
+The SQL text is the same, but branch values are not equivalent.
+The city branch returns many rows and may need a different access path than a small branch.
+Adaptive Cursor Sharing may create separate child cursors, but this is environment-dependent.
+Hints should be used carefully because an INDEX hint that helps a small branch can hurt a large branch.
+```
+
+Production recommendation:
+
+```text
+Check skew, histogram, runtime plan, and child cursors before forcing plans.
+Prefer correct stats, query design, and targeted indexing before blanket hints.
+```
+
+Rollback:
+
+```text
+Remove application hints if they regress common bind values.
+Restore previous stats or indexes only after measuring impact.
+```
+
+---
+
+# Capstone Project 4 - Mixed Incident: Slow Dashboard And Blocked Account
+
+## Assignment For DBA
+
+Business scenario:
+
+```text
+Branch 10 dashboard is slow during business hours.
+At the same time, account 1000000101 balance update is stuck.
+The operations bridge says "database is slow".
+```
+
+DBA tasks:
+
+1. Separate the dashboard symptom from the account-update symptom.
+2. Capture before metrics for the dashboard query.
+3. Identify why the query reads and sorts too much data.
+4. Rewrite the query to match the business need.
+5. Add or reveal the targeted branch/date index.
+6. Validate after metrics.
+7. Simulate and diagnose the account row lock.
+8. Identify blocker, waiter, locked object, and transaction age.
+9. Resolve the lab lock safely.
+10. Write the final incident report.
+
+Expected evidence:
+
+```text
+before/after dashboard metrics
+before/after plan shape
+index used or not used
+blocked session query output
+locked object query output
+transaction age query output
+final report with risk and rollback
+```
+
+## Solution
+
+Recommended DBA conclusion:
+
+```text
+The dashboard issue and account-update issue are separate.
+The dashboard was slow because it requested all historical rows for a hot branch and sorted a large row set.
+The account update was stuck because another session held an uncommitted row lock on ACCOUNTS.
+```
+
+Fix:
+
+```text
+Rewrite the dashboard query to return required columns, recent rows, and FETCH FIRST 100 ROWS.
+Support it with an index on (branch_id, transaction_date DESC).
+Resolve the account lock by committing or rolling back the blocker after business confirmation.
+```
+
+Validation:
+
+```text
+After query should show fewer rows, lower logical reads, and better access path.
+Lock wait should disappear after blocker resolution.
+```
+
+Rollback:
+
+```text
+Make the new index invisible or drop it if it causes regression.
+Restore the old dashboard SQL only if business accepts the performance risk.
+For locking, never kill a production session without approval and impact assessment.
+```
+
+---
+
+# SECTION 12 - FINAL TRAINING CLOSE (4:55 - 5:00)
 
 ## Banking Scenario
 
@@ -1928,7 +2599,7 @@ The final takeaway is the working method DBAs should use after the training.
 
 ---
 
-# Slide 8 - Three-Day Framework
+# Slide 20 - Three-Day Framework (4:55 PM - 5:00 PM)
 
 ## Time: 4:55 PM - 5:00 PM
 
