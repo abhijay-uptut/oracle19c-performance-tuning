@@ -10,7 +10,7 @@ Use the command IDs to identify commands during delivery. Commands are listed in
 
 ### Command ID: D3-0001 - COMMON SESSION SETTINGS
 
-Source: `03-Day/FIRST.md:97`
+Source: `03-Day/FIRST.md:108`
 
 ```sql
 SET LINESIZE 220
@@ -24,9 +24,185 @@ ALTER SESSION SET statistics_level = ALL;
 ALTER SESSION SET optimizer_use_sql_plan_baselines = TRUE;
 ```
 
-### Command ID: D3-0002 - Step 1 - Drop And Create Payments Table
+### Command ID: D3-0002 - Part 0 - Setup Bank Table
 
-Source: `03-Day/FIRST.md:364`
+Source: `03-Day/FIRST.md:356`
+
+```sql
+DROP TABLE bank_txn_demo PURGE;
+
+CREATE TABLE bank_txn_demo AS
+SELECT
+  LEVEL txn_id,
+  CASE
+    WHEN LEVEL <= 95000 THEN 'SUCCESS'
+    ELSE 'FAILED'
+  END txn_status,
+  ROUND(DBMS_RANDOM.VALUE(100, 50000), 2) amount
+FROM dual
+CONNECT BY LEVEL <= 100000;
+```
+
+### Command ID: D3-0003 - Part 1 - Create Index
+
+Source: `03-Day/FIRST.md:389`
+
+```sql
+CREATE INDEX idx_bank_txn_status
+ON bank_txn_demo(txn_status);
+```
+
+### Command ID: D3-0004 - Part 2 - Gather Stats Without Histogram
+
+Source: `03-Day/FIRST.md:405`
+
+```sql
+BEGIN
+  DBMS_STATS.GATHER_TABLE_STATS(
+    ownname    => USER,
+    tabname    => 'BANK_TXN_DEMO',
+    method_opt => 'FOR COLUMNS SIZE 1 txn_status'
+  );
+END;
+/
+```
+
+### Command ID: D3-0005 - Part 3 - Confirm Histogram Is None
+
+Source: `03-Day/FIRST.md:427`
+
+```sql
+SELECT column_name, histogram
+FROM user_tab_col_statistics
+WHERE table_name = 'BANK_TXN_DEMO'
+AND column_name = 'TXN_STATUS';
+```
+
+### Command ID: D3-0006 - Part 4 - Run Failed Transaction Query Before Histogram
+
+Source: `03-Day/FIRST.md:450`
+
+```sql
+SELECT /* hist_demo_failed_before */
+       *
+FROM bank_txn_demo
+WHERE txn_status = 'FAILED';
+```
+
+### Command ID: D3-0007 - Part 4 - Run Failed Transaction Query Before Histogram
+
+Source: `03-Day/FIRST.md:459`
+
+```sql
+COLUMN hist_sql_id NEW_VALUE hist_sql_id
+COLUMN hist_child_no NEW_VALUE hist_child_no
+
+SELECT sql_id AS hist_sql_id,
+       child_number AS hist_child_no,
+       plan_hash_value,
+       executions,
+       buffer_gets,
+       rows_processed,
+       SUBSTR(sql_text,1,100) sql_text
+FROM v$sql
+WHERE sql_text LIKE '%hist_demo_failed_before%'
+AND sql_text NOT LIKE '%v$sql%'
+ORDER BY last_active_time DESC
+FETCH FIRST 1 ROW ONLY;
+```
+
+### Command ID: D3-0008 - Part 4 - Run Failed Transaction Query Before Histogram
+
+Source: `03-Day/FIRST.md:479`
+
+```sql
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    '&&hist_sql_id',
+    &&hist_child_no,
+    'ALLSTATS LAST'
+  )
+);
+```
+
+### Command ID: D3-0009 - Part 5 - Create Histogram
+
+Source: `03-Day/FIRST.md:507`
+
+```sql
+BEGIN
+  DBMS_STATS.GATHER_TABLE_STATS(
+    ownname    => USER,
+    tabname    => 'BANK_TXN_DEMO',
+    method_opt => 'FOR COLUMNS SIZE 254 txn_status'
+  );
+END;
+/
+```
+
+### Command ID: D3-0010 - Part 6 - Confirm Histogram Created
+
+Source: `03-Day/FIRST.md:528`
+
+```sql
+SELECT column_name, histogram
+FROM user_tab_col_statistics
+WHERE table_name = 'BANK_TXN_DEMO'
+AND column_name = 'TXN_STATUS';
+```
+
+### Command ID: D3-0011 - Part 7 - Run Same Query After Histogram
+
+Source: `03-Day/FIRST.md:551`
+
+```sql
+SELECT /* hist_demo_failed_after */
+       *
+FROM bank_txn_demo
+WHERE txn_status = 'FAILED';
+```
+
+### Command ID: D3-0012 - Part 7 - Run Same Query After Histogram
+
+Source: `03-Day/FIRST.md:560`
+
+```sql
+COLUMN hist_sql_id NEW_VALUE hist_sql_id
+COLUMN hist_child_no NEW_VALUE hist_child_no
+
+SELECT sql_id AS hist_sql_id,
+       child_number AS hist_child_no,
+       plan_hash_value,
+       executions,
+       buffer_gets,
+       rows_processed,
+       SUBSTR(sql_text,1,100) sql_text
+FROM v$sql
+WHERE sql_text LIKE '%hist_demo_failed_after%'
+AND sql_text NOT LIKE '%v$sql%'
+ORDER BY last_active_time DESC
+FETCH FIRST 1 ROW ONLY;
+```
+
+### Command ID: D3-0013 - Part 7 - Run Same Query After Histogram
+
+Source: `03-Day/FIRST.md:580`
+
+```sql
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    '&&hist_sql_id',
+    &&hist_child_no,
+    'ALLSTATS LAST'
+  )
+);
+```
+
+### Command ID: D3-0014 - Step 1 - Drop And Create Payments Table
+
+Source: `03-Day/FIRST.md:809`
 
 ```sql
 BEGIN
@@ -51,9 +227,9 @@ CREATE TABLE payments (
 );
 ```
 
-### Command ID: D3-0003 - Step 2 - Insert Payment Data
+### Command ID: D3-0015 - Step 2 - Insert Payment Data
 
-Source: `03-Day/FIRST.md:400`
+Source: `03-Day/FIRST.md:845`
 
 ```sql
 BEGIN
@@ -93,18 +269,18 @@ END;
 COMMIT;
 ```
 
-### Command ID: D3-0004 - Step 3 - Create Supporting Index
+### Command ID: D3-0016 - Step 3 - Create Supporting Index
 
-Source: `03-Day/FIRST.md:457`
+Source: `03-Day/FIRST.md:902`
 
 ```sql
 CREATE INDEX idx_payments_status_date
 ON payments(status, settlement_date);
 ```
 
-### Command ID: D3-0005 - Step 4 - Gather Statistics With Histogram
+### Command ID: D3-0017 - Step 4 - Gather Statistics With Histogram
 
-Source: `03-Day/FIRST.md:473`
+Source: `03-Day/FIRST.md:918`
 
 ```sql
 BEGIN
@@ -118,9 +294,9 @@ END;
 /
 ```
 
-### Command ID: D3-0006 - Step 5 - Validate Setup
+### Command ID: D3-0018 - Step 5 - Validate Setup
 
-Source: `03-Day/FIRST.md:495`
+Source: `03-Day/FIRST.md:940`
 
 ```sql
 SELECT status, COUNT(*) AS row_count
@@ -137,9 +313,9 @@ WHERE table_name = 'PAYMENTS'
 AND column_name = 'STATUS';
 ```
 
-### Command ID: D3-0007 - Step 1 - Run Critical SQL
+### Command ID: D3-0019 - Step 1 - Run Critical SQL
 
-Source: `03-Day/FIRST.md:557`
+Source: `03-Day/FIRST.md:1004`
 
 ```sql
 SELECT /* day3_spm_payment_pending */
@@ -149,9 +325,9 @@ WHERE status = 'PENDING'
 AND settlement_date = TRUNC(SYSDATE);
 ```
 
-### Command ID: D3-0008 - Step 2 - Find SQL ID, Child Number And Plan Hash
+### Command ID: D3-0020 - Step 2 - Find SQL ID, Child Number And Plan Hash
 
-Source: `03-Day/FIRST.md:590`
+Source: `03-Day/FIRST.md:1037`
 
 ```sql
 COLUMN spm_sql_id NEW_VALUE spm_sql_id
@@ -173,9 +349,9 @@ ORDER BY last_active_time DESC
 FETCH FIRST 1 ROW ONLY;
 ```
 
-### Command ID: D3-0009 - Step 2 - Find SQL ID, Child Number And Plan Hash
+### Command ID: D3-0021 - Step 2 - Find SQL ID, Child Number And Plan Hash
 
-Source: `03-Day/FIRST.md:612`
+Source: `03-Day/FIRST.md:1059`
 
 ```sql
 SELECT '&&spm_sql_id' AS sql_id,
@@ -184,9 +360,9 @@ SELECT '&&spm_sql_id' AS sql_id,
 FROM dual;
 ```
 
-### Command ID: D3-0010 - Step 3 - Display Captured Runtime Plan
+### Command ID: D3-0022 - Step 3 - Display Captured Runtime Plan
 
-Source: `03-Day/FIRST.md:632`
+Source: `03-Day/FIRST.md:1079`
 
 ```sql
 SELECT *
@@ -199,9 +375,9 @@ FROM TABLE(
 );
 ```
 
-### Command ID: D3-0011 - Step 4 - Load Plan From Cursor Cache
+### Command ID: D3-0023 - Step 4 - Load Plan From Cursor Cache
 
-Source: `03-Day/FIRST.md:653`
+Source: `03-Day/FIRST.md:1100`
 
 ```sql
 DECLARE
@@ -217,9 +393,9 @@ END;
 /
 ```
 
-### Command ID: D3-0012 - Step 5 - View SQL Plan Baseline
+### Command ID: D3-0024 - Step 5 - View SQL Plan Baseline
 
-Source: `03-Day/FIRST.md:692`
+Source: `03-Day/FIRST.md:1139`
 
 ```sql
 SELECT sql_handle,
@@ -235,9 +411,9 @@ ORDER BY created DESC
 FETCH FIRST 10 ROWS ONLY;
 ```
 
-### Command ID: D3-0013 - Step 5 - View SQL Plan Baseline
+### Command ID: D3-0025 - Step 5 - View SQL Plan Baseline
 
-Source: `03-Day/FIRST.md:708`
+Source: `03-Day/FIRST.md:1155`
 
 ```sql
 SELECT sql_handle,
@@ -252,9 +428,9 @@ ORDER BY created DESC
 FETCH FIRST 10 ROWS ONLY;
 ```
 
-### Command ID: D3-0014 - Step 6 - Rerun Same SQL And Check Baseline Note
+### Command ID: D3-0026 - Step 6 - Rerun Same SQL And Check Baseline Note
 
-Source: `03-Day/FIRST.md:739`
+Source: `03-Day/FIRST.md:1186`
 
 ```sql
 SELECT /* day3_spm_payment_pending */
@@ -264,9 +440,9 @@ WHERE status = 'PENDING'
 AND settlement_date = TRUNC(SYSDATE);
 ```
 
-### Command ID: D3-0015 - Step 6 - Rerun Same SQL And Check Baseline Note
+### Command ID: D3-0027 - Step 6 - Rerun Same SQL And Check Baseline Note
 
-Source: `03-Day/FIRST.md:749`
+Source: `03-Day/FIRST.md:1196`
 
 ```sql
 COLUMN spm_sql_id NEW_VALUE spm_sql_id
@@ -288,9 +464,9 @@ ORDER BY last_active_time DESC
 FETCH FIRST 1 ROW ONLY;
 ```
 
-### Command ID: D3-0016 - Step 6 - Rerun Same SQL And Check Baseline Note
+### Command ID: D3-0028 - Step 6 - Rerun Same SQL And Check Baseline Note
 
-Source: `03-Day/FIRST.md:771`
+Source: `03-Day/FIRST.md:1218`
 
 ```sql
 SELECT *
@@ -303,9 +479,9 @@ FROM TABLE(
 );
 ```
 
-### Command ID: D3-0017 - Optional - Evolve Report
+### Command ID: D3-0029 - Optional - Evolve Report
 
-Source: `03-Day/FIRST.md:865`
+Source: `03-Day/FIRST.md:1314`
 
 ```sql
 SET LONG 1000000
@@ -316,9 +492,9 @@ SELECT DBMS_SPM.EVOLVE_SQL_PLAN_BASELINE(
 FROM dual;
 ```
 
-### Command ID: D3-0018 - Optional - Baseline Rollback Example
+### Command ID: D3-0030 - Optional - Baseline Rollback Example
 
-Source: `03-Day/FIRST.md:948`
+Source: `03-Day/FIRST.md:1399`
 
 ```sql
 DECLARE
@@ -334,9 +510,9 @@ END;
 /
 ```
 
-### Command ID: D3-0019 - Step 1 - Drop And Create Branch Transactions
+### Command ID: D3-0031 - Step 1 - Drop And Create Branch Transactions
 
-Source: `03-Day/FIRST.md:1101`
+Source: `03-Day/FIRST.md:1558`
 
 ```sql
 BEGIN
@@ -361,9 +537,9 @@ CREATE TABLE branch_transactions (
 );
 ```
 
-### Command ID: D3-0020 - Step 2 - Insert Skewed Data
+### Command ID: D3-0032 - Step 2 - Insert Skewed Data
 
-Source: `03-Day/FIRST.md:1139`
+Source: `03-Day/FIRST.md:1596`
 
 ```sql
 INSERT /*+ APPEND */ INTO branch_transactions
@@ -381,9 +557,9 @@ CONNECT BY LEVEL <= 300000;
 COMMIT;
 ```
 
-### Command ID: D3-0021 - Step 2 - Insert Skewed Data
+### Command ID: D3-0033 - Step 2 - Insert Skewed Data
 
-Source: `03-Day/FIRST.md:1157`
+Source: `03-Day/FIRST.md:1614`
 
 ```sql
 INSERT /*+ APPEND */ INTO branch_transactions
@@ -401,9 +577,9 @@ CONNECT BY LEVEL <= 5000;
 COMMIT;
 ```
 
-### Command ID: D3-0022 - Step 2 - Insert Skewed Data
+### Command ID: D3-0034 - Step 2 - Insert Skewed Data
 
-Source: `03-Day/FIRST.md:1175`
+Source: `03-Day/FIRST.md:1632`
 
 ```sql
 INSERT /*+ APPEND */ INTO branch_transactions
@@ -421,18 +597,18 @@ CONNECT BY LEVEL <= 500;
 COMMIT;
 ```
 
-### Command ID: D3-0023 - Step 3 - Create Index And Gather Histogram Stats
+### Command ID: D3-0035 - Step 3 - Create Index And Gather Histogram Stats
 
-Source: `03-Day/FIRST.md:1202`
+Source: `03-Day/FIRST.md:1659`
 
 ```sql
 CREATE INDEX idx_branch_txn_branch
 ON branch_transactions(branch_id);
 ```
 
-### Command ID: D3-0024 - Step 3 - Create Index And Gather Histogram Stats
+### Command ID: D3-0036 - Step 3 - Create Index And Gather Histogram Stats
 
-Source: `03-Day/FIRST.md:1207`
+Source: `03-Day/FIRST.md:1664`
 
 ```sql
 BEGIN
@@ -446,9 +622,9 @@ END;
 /
 ```
 
-### Command ID: D3-0025 - Step 4 - Verify Distribution And Histogram
+### Command ID: D3-0037 - Step 4 - Verify Distribution And Histogram
 
-Source: `03-Day/FIRST.md:1229`
+Source: `03-Day/FIRST.md:1686`
 
 ```sql
 SELECT branch_id,
@@ -458,9 +634,9 @@ GROUP BY branch_id
 ORDER BY branch_id;
 ```
 
-### Command ID: D3-0026 - Step 4 - Verify Distribution And Histogram
+### Command ID: D3-0038 - Step 4 - Verify Distribution And Histogram
 
-Source: `03-Day/FIRST.md:1247`
+Source: `03-Day/FIRST.md:1704`
 
 ```sql
 SELECT column_name,
@@ -472,17 +648,17 @@ WHERE table_name = 'BRANCH_TRANSACTIONS'
 AND column_name = 'BRANCH_ID';
 ```
 
-### Command ID: D3-0027 - Step 5 - Prepare Bind Variable
+### Command ID: D3-0039 - Step 5 - Prepare Bind Variable
 
-Source: `03-Day/FIRST.md:1274`
+Source: `03-Day/FIRST.md:1731`
 
 ```sql
 VARIABLE b_branch_id NUMBER
 ```
 
-### Command ID: D3-0028 - Step 6 - Rare Value First
+### Command ID: D3-0040 - Step 6 - Rare Value First
 
-Source: `03-Day/FIRST.md:1291`
+Source: `03-Day/FIRST.md:1748`
 
 ```sql
 EXEC :b_branch_id := 3;
@@ -502,9 +678,9 @@ FROM TABLE(
 );
 ```
 
-### Command ID: D3-0029 - Step 7 - Common Value
+### Command ID: D3-0041 - Step 7 - Common Value
 
-Source: `03-Day/FIRST.md:1326`
+Source: `03-Day/FIRST.md:1783`
 
 ```sql
 EXEC :b_branch_id := 1;
@@ -524,9 +700,9 @@ FROM TABLE(
 );
 ```
 
-### Command ID: D3-0030 - Step 8 - Repeat Executions To Encourage ACS
+### Command ID: D3-0042 - Step 8 - Repeat Executions To Encourage ACS
 
-Source: `03-Day/FIRST.md:1366`
+Source: `03-Day/FIRST.md:1823`
 
 ```sql
 EXEC :b_branch_id := 3
@@ -545,9 +721,9 @@ EXEC :b_branch_id := 2
 SELECT /* day3_bind_branch_demo */ SUM(amount) FROM branch_transactions WHERE branch_id = :b_branch_id;
 ```
 
-### Command ID: D3-0031 - Step 9 - Inspect Child Cursors
+### Command ID: D3-0043 - Step 9 - Inspect Child Cursors
 
-Source: `03-Day/FIRST.md:1394`
+Source: `03-Day/FIRST.md:1851`
 
 ```sql
 SELECT sql_id,
@@ -565,9 +741,9 @@ AND sql_text NOT LIKE '%v$sql%'
 ORDER BY sql_id, child_number;
 ```
 
-### Command ID: D3-0032 - Step 9 - Inspect Child Cursors
+### Command ID: D3-0044 - Step 9 - Inspect Child Cursors
 
-Source: `03-Day/FIRST.md:1412`
+Source: `03-Day/FIRST.md:1869`
 
 ```sql
 SELECT *
@@ -580,9 +756,9 @@ FROM TABLE(
 );
 ```
 
-### Command ID: D3-0033 - Hint Risk With Uneven Branch Traffic
+### Command ID: D3-0045 - Hint Risk With Uneven Branch Traffic
 
-Source: `03-Day/FIRST.md:1498`
+Source: `03-Day/FIRST.md:1957`
 
 ```sql
 SELECT /*+ INDEX(branch_transactions idx_branch_txn_branch) */
@@ -591,9 +767,9 @@ FROM branch_transactions
 WHERE branch_id = :b_branch_id;
 ```
 
-### Command ID: D3-0034 - Hint Demonstration
+### Command ID: D3-0046 - Hint Demonstration
 
-Source: `03-Day/FIRST.md:1536`
+Source: `03-Day/FIRST.md:1995`
 
 ```sql
 EXEC :b_branch_id := 3
@@ -607,9 +783,9 @@ SELECT *
 FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST +PREDICATE'));
 ```
 
-### Command ID: D3-0035 - Hint Demonstration
+### Command ID: D3-0047 - Hint Demonstration
 
-Source: `03-Day/FIRST.md:1548`
+Source: `03-Day/FIRST.md:2007`
 
 ```sql
 EXEC :b_branch_id := 1
@@ -623,9 +799,9 @@ SELECT *
 FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST +PREDICATE'));
 ```
 
-### Command ID: D3-0036 - Hint Demonstration
+### Command ID: D3-0048 - Hint Demonstration
 
-Source: `03-Day/FIRST.md:1562`
+Source: `03-Day/FIRST.md:2021`
 
 ```sql
 EXEC :b_branch_id := 3
@@ -639,9 +815,9 @@ SELECT *
 FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST +PREDICATE'));
 ```
 
-### Command ID: D3-0037 - Hint Demonstration
+### Command ID: D3-0049 - Hint Demonstration
 
-Source: `03-Day/FIRST.md:1574`
+Source: `03-Day/FIRST.md:2033`
 
 ```sql
 EXEC :b_branch_id := 1
@@ -658,9 +834,9 @@ FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST +PREDICATE'));
 
 ## Afternoon Slot - `03-Day/SECOND.md`
 
-### Command ID: D3-0038 - COMMON SESSION SETTINGS
+### Command ID: D3-0050 - COMMON SESSION SETTINGS
 
-Source: `03-Day/SECOND.md:63`
+Source: `03-Day/SECOND.md:98`
 
 ```sql
 SET LINESIZE 220
@@ -673,9 +849,9 @@ SET AUTOTRACE OFF
 ALTER SESSION SET statistics_level = ALL;
 ```
 
-### Command ID: D3-0039 - BEFORE STARTING
+### Command ID: D3-0051 - BEFORE STARTING
 
-Source: `03-Day/SECOND.md:88`
+Source: `03-Day/SECOND.md:123`
 
 ```sql
 SELECT table_name
@@ -684,9 +860,9 @@ WHERE table_name IN ('ACCOUNTS','TRANSACTIONS','CUSTOMERS')
 ORDER BY table_name;
 ```
 
-### Command ID: D3-0040 - Query 1 - Blocked Sessions
+### Command ID: D3-0052 - Query 1 - Blocked Sessions
 
-Source: `03-Day/SECOND.md:201`
+Source: `03-Day/SECOND.md:330`
 
 ```sql
 SELECT sid,
@@ -702,9 +878,9 @@ FROM v$session
 WHERE blocking_session IS NOT NULL;
 ```
 
-### Command ID: D3-0041 - Query 2 - Blocker/Waiter Relationship
+### Command ID: D3-0053 - Query 2 - Blocker/Waiter Relationship
 
-Source: `03-Day/SECOND.md:225`
+Source: `03-Day/SECOND.md:361`
 
 ```sql
 SELECT *
@@ -714,9 +890,9 @@ SELECT *
 FROM dba_waiters;
 ```
 
-### Command ID: D3-0042 - Query 3 - Locked Objects
+### Command ID: D3-0054 - Query 3 - Locked Objects
 
-Source: `03-Day/SECOND.md:243`
+Source: `03-Day/SECOND.md:386`
 
 ```sql
 SELECT lo.session_id,
@@ -733,9 +909,9 @@ JOIN v$session s
 ORDER BY lo.session_id, o.object_name;
 ```
 
-### Command ID: D3-0043 - Query 4 - Blocker Details
+### Command ID: D3-0055 - Query 4 - Blocker Details
 
-Source: `03-Day/SECOND.md:268`
+Source: `03-Day/SECOND.md:418`
 
 ```sql
 SELECT s.sid,
@@ -759,9 +935,9 @@ WHERE s.sid IN (
 );
 ```
 
-### Command ID: D3-0044 - Query 5 - SQL Text For Waiter And Blocker
+### Command ID: D3-0056 - Query 5 - SQL Text For Waiter And Blocker
 
-Source: `03-Day/SECOND.md:298`
+Source: `03-Day/SECOND.md:455`
 
 ```sql
 SELECT s.sid,
@@ -783,9 +959,9 @@ OR s.sid IN (
 );
 ```
 
-### Command ID: D3-0045 - Step 1 - Setup Account Row
+### Command ID: D3-0057 - Step 1 - Setup Account Row
 
-Source: `03-Day/SECOND.md:344`
+Source: `03-Day/SECOND.md:554`
 
 ```sql
 MERGE INTO accounts a
@@ -829,9 +1005,9 @@ WHEN NOT MATCHED THEN
 COMMIT;
 ```
 
-### Command ID: D3-0046 - Step 1 - Setup Account Row
+### Command ID: D3-0058 - Step 1 - Setup Account Row
 
-Source: `03-Day/SECOND.md:388`
+Source: `03-Day/SECOND.md:598`
 
 ```sql
 SELECT account_id, account_number, balance, status
@@ -839,9 +1015,9 @@ FROM accounts
 WHERE account_id = 101;
 ```
 
-### Command ID: D3-0047 - Step 2 - Session 1 Creates The Lock
+### Command ID: D3-0059 - Step 2 - Session 1 Creates The Lock
 
-Source: `03-Day/SECOND.md:400`
+Source: `03-Day/SECOND.md:624`
 
 ```sql
 BEGIN
@@ -858,9 +1034,9 @@ SET balance = balance - 1000
 WHERE account_id = 101;
 ```
 
-### Command ID: D3-0048 - Step 3 - Session 2 Becomes The Waiter
+### Command ID: D3-0060 - Step 3 - Session 2 Becomes The Waiter
 
-Source: `03-Day/SECOND.md:429`
+Source: `03-Day/SECOND.md:667`
 
 ```sql
 BEGIN
@@ -877,9 +1053,9 @@ SET balance = balance + 1000
 WHERE account_id = 101;
 ```
 
-### Command ID: D3-0049 - Step 4 - Session 3 Diagnoses The Block
+### Command ID: D3-0061 - Step 4 - Session 3 Diagnoses The Block
 
-Source: `03-Day/SECOND.md:458`
+Source: `03-Day/SECOND.md:719`
 
 ```sql
 SELECT sid,
@@ -898,9 +1074,9 @@ OR module = 'DAY3_LOCK_LAB'
 ORDER BY sid;
 ```
 
-### Command ID: D3-0050 - Step 5 - Session 3 Finds Locked Object
+### Command ID: D3-0062 - Step 5 - Session 3 Finds Locked Object
 
-Source: `03-Day/SECOND.md:486`
+Source: `03-Day/SECOND.md:768`
 
 ```sql
 SELECT lo.session_id,
@@ -917,9 +1093,9 @@ JOIN v$session s
 WHERE o.object_name = 'ACCOUNTS';
 ```
 
-### Command ID: D3-0051 - Step 6 - Session 3 Checks Transaction Age
+### Command ID: D3-0063 - Step 6 - Session 3 Checks Transaction Age
 
-Source: `03-Day/SECOND.md:511`
+Source: `03-Day/SECOND.md:807`
 
 ```sql
 SELECT s.sid,
@@ -936,41 +1112,41 @@ JOIN v$transaction t
 WHERE s.module = 'DAY3_LOCK_LAB';
 ```
 
-### Command ID: D3-0052 - Step 7 - Resolve The Lab Lock
+### Command ID: D3-0064 - Step 7 - Resolve The Lab Lock
 
-Source: `03-Day/SECOND.md:539`
+Source: `03-Day/SECOND.md:858`
 
 ```sql
 COMMIT;
 ```
 
-### Command ID: D3-0053 - Step 7 - Resolve The Lab Lock
+### Command ID: D3-0065 - Step 7 - Resolve The Lab Lock
 
-Source: `03-Day/SECOND.md:545`
+Source: `03-Day/SECOND.md:864`
 
 ```sql
 ROLLBACK;
 ```
 
-### Command ID: D3-0054 - Step 7 - Resolve The Lab Lock
+### Command ID: D3-0066 - Step 7 - Resolve The Lab Lock
 
-Source: `03-Day/SECOND.md:557`
+Source: `03-Day/SECOND.md:876`
 
 ```sql
 COMMIT;
 ```
 
-### Command ID: D3-0055 - Optional Emergency Command
+### Command ID: D3-0067 - Optional Emergency Command
 
-Source: `03-Day/SECOND.md:567`
+Source: `03-Day/SECOND.md:886`
 
 ```sql
 ALTER SYSTEM KILL SESSION 'sid,serial#' IMMEDIATE;
 ```
 
-### Command ID: D3-0056 - Active Session Snapshot Query
+### Command ID: D3-0068 - Active Session Snapshot Query
 
-Source: `03-Day/SECOND.md:615`
+Source: `03-Day/SECOND.md:986`
 
 ```sql
 SELECT sid,
@@ -990,9 +1166,9 @@ AND wait_class <> 'Idle'
 ORDER BY seconds_in_wait DESC;
 ```
 
-### Command ID: D3-0057 - Active Session Snapshot Query
+### Command ID: D3-0069 - Active Session Snapshot Query
 
-Source: `03-Day/SECOND.md:635`
+Source: `03-Day/SECOND.md:1013`
 
 ```sql
 SELECT sample_time,
@@ -1008,9 +1184,9 @@ WHERE sample_time >= SYSDATE - (15/1440)
 ORDER BY sample_time DESC;
 ```
 
-### Command ID: D3-0058 - Step 1 - Create Hot Branch Pattern
+### Command ID: D3-0070 - Step 1 - Create Hot Branch Pattern
 
-Source: `03-Day/SECOND.md:717`
+Source: `03-Day/SECOND.md:1169`
 
 ```sql
 UPDATE transactions
@@ -1020,9 +1196,9 @@ WHERE transaction_id <= 80000;
 COMMIT;
 ```
 
-### Command ID: D3-0059 - Step 1 - Create Hot Branch Pattern
+### Command ID: D3-0071 - Step 1 - Create Hot Branch Pattern
 
-Source: `03-Day/SECOND.md:727`
+Source: `03-Day/SECOND.md:1179`
 
 ```sql
 BEGIN
@@ -1036,9 +1212,9 @@ END;
 /
 ```
 
-### Command ID: D3-0060 - Step 1 - Create Hot Branch Pattern
+### Command ID: D3-0072 - Step 1 - Create Hot Branch Pattern
 
-Source: `03-Day/SECOND.md:741`
+Source: `03-Day/SECOND.md:1193`
 
 ```sql
 SELECT branch_id, COUNT(*) AS row_count
@@ -1048,9 +1224,9 @@ GROUP BY branch_id
 ORDER BY branch_id;
 ```
 
-### Command ID: D3-0061 - Step 2 - Make Before Plan Clean
+### Command ID: D3-0073 - Step 2 - Make Before Plan Clean
 
-Source: `03-Day/SECOND.md:761`
+Source: `03-Day/SECOND.md:1233`
 
 ```sql
 DECLARE
@@ -1070,17 +1246,17 @@ END;
 ALTER SESSION SET optimizer_use_invisible_indexes = FALSE;
 ```
 
-### Command ID: D3-0062 - Optional - AWR Start Snapshot
+### Command ID: D3-0074 - Optional - AWR Start Snapshot
 
-Source: `03-Day/SECOND.md:785`
+Source: `03-Day/SECOND.md:1264`
 
 ```sql
 EXEC DBMS_WORKLOAD_REPOSITORY.CREATE_SNAPSHOT;
 ```
 
-### Command ID: D3-0063 - Problem Query
+### Command ID: D3-0075 - Problem Query
 
-Source: `03-Day/SECOND.md:801`
+Source: `03-Day/SECOND.md:1310`
 
 ```sql
 SELECT /* capstone_dashboard_before */
@@ -1090,9 +1266,9 @@ WHERE branch_id = 10
 ORDER BY transaction_date DESC;
 ```
 
-### Command ID: D3-0064 - Run Before Query Safely
+### Command ID: D3-0076 - Run Before Query Safely
 
-Source: `03-Day/SECOND.md:823`
+Source: `03-Day/SECOND.md:1346`
 
 ```sql
 SET AUTOTRACE TRACEONLY STATISTICS
@@ -1106,9 +1282,9 @@ ORDER BY transaction_date DESC;
 SET AUTOTRACE OFF
 ```
 
-### Command ID: D3-0065 - Capture Before Plan
+### Command ID: D3-0077 - Capture Before Plan
 
-Source: `03-Day/SECOND.md:846`
+Source: `03-Day/SECOND.md:1369`
 
 ```sql
 EXPLAIN PLAN FOR
@@ -1121,9 +1297,9 @@ ORDER BY transaction_date DESC;
 SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
 ```
 
-### Command ID: D3-0066 - Better Business Query
+### Command ID: D3-0078 - Better Business Query
 
-Source: `03-Day/SECOND.md:875`
+Source: `03-Day/SECOND.md:1432`
 
 ```sql
 SELECT /* capstone_dashboard_after */
@@ -1141,9 +1317,9 @@ ORDER BY transaction_date DESC
 FETCH FIRST 100 ROWS ONLY;
 ```
 
-### Command ID: D3-0067 - Create Supporting Index Safely
+### Command ID: D3-0079 - Create Supporting Index Safely
 
-Source: `03-Day/SECOND.md:895`
+Source: `03-Day/SECOND.md:1466`
 
 ```sql
 DECLARE
@@ -1165,9 +1341,9 @@ END;
 /
 ```
 
-### Command ID: D3-0068 - Create Supporting Index Safely
+### Command ID: D3-0080 - Create Supporting Index Safely
 
-Source: `03-Day/SECOND.md:917`
+Source: `03-Day/SECOND.md:1488`
 
 ```sql
 BEGIN
@@ -1180,9 +1356,9 @@ END;
 /
 ```
 
-### Command ID: D3-0069 - Run After Query
+### Command ID: D3-0081 - Run After Query
 
-Source: `03-Day/SECOND.md:932`
+Source: `03-Day/SECOND.md:1510`
 
 ```sql
 SET AUTOTRACE TRACEONLY STATISTICS
@@ -1204,9 +1380,9 @@ FETCH FIRST 100 ROWS ONLY;
 SET AUTOTRACE OFF
 ```
 
-### Command ID: D3-0070 - Capture After Runtime Plan
+### Command ID: D3-0082 - Capture After Runtime Plan
 
-Source: `03-Day/SECOND.md:963`
+Source: `03-Day/SECOND.md:1548`
 
 ```sql
 SELECT /* capstone_dashboard_after_plan */
@@ -1236,9 +1412,9 @@ FROM TABLE(
 );
 ```
 
-### Command ID: D3-0071 - Create A Controlled Lock
+### Command ID: D3-0083 - Create A Controlled Lock
 
-Source: `03-Day/SECOND.md:1010`
+Source: `03-Day/SECOND.md:1634`
 
 ```sql
 MERGE INTO accounts a
@@ -1282,9 +1458,9 @@ WHEN NOT MATCHED THEN
 COMMIT;
 ```
 
-### Command ID: D3-0072 - Create A Controlled Lock
+### Command ID: D3-0084 - Create A Controlled Lock
 
-Source: `03-Day/SECOND.md:1054`
+Source: `03-Day/SECOND.md:1684`
 
 ```sql
 UPDATE /* capstone_lock_blocker */
@@ -1293,9 +1469,9 @@ SET balance = balance - 500
 WHERE account_id = 101;
 ```
 
-### Command ID: D3-0073 - Create A Controlled Lock
+### Command ID: D3-0085 - Create A Controlled Lock
 
-Source: `03-Day/SECOND.md:1065`
+Source: `03-Day/SECOND.md:1701`
 
 ```sql
 UPDATE /* capstone_lock_waiter */
@@ -1304,9 +1480,9 @@ SET balance = balance + 500
 WHERE account_id = 101;
 ```
 
-### Command ID: D3-0074 - Diagnose Capstone Lock
+### Command ID: D3-0086 - Diagnose Capstone Lock
 
-Source: `03-Day/SECOND.md:1084`
+Source: `03-Day/SECOND.md:1727`
 
 ```sql
 SELECT sid,
@@ -1322,9 +1498,9 @@ FROM v$session
 WHERE blocking_session IS NOT NULL;
 ```
 
-### Command ID: D3-0075 - Diagnose Capstone Lock
+### Command ID: D3-0087 - Diagnose Capstone Lock
 
-Source: `03-Day/SECOND.md:1100`
+Source: `03-Day/SECOND.md:1750`
 
 ```sql
 SELECT lo.session_id,
@@ -1339,18 +1515,18 @@ JOIN v$session s
 WHERE o.object_name = 'ACCOUNTS';
 ```
 
-### Command ID: D3-0076 - Diagnose Capstone Lock
+### Command ID: D3-0088 - Diagnose Capstone Lock
 
-Source: `03-Day/SECOND.md:1115`
+Source: `03-Day/SECOND.md:1772`
 
 ```sql
 -- In Session 1
 ROLLBACK;
 ```
 
-### Command ID: D3-0077 - Optional - AWR End Snapshot
+### Command ID: D3-0089 - Optional - AWR End Snapshot
 
-Source: `03-Day/SECOND.md:1132`
+Source: `03-Day/SECOND.md:1822`
 
 ```sql
 EXEC DBMS_WORKLOAD_REPOSITORY.CREATE_SNAPSHOT;

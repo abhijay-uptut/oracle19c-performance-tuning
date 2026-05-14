@@ -2,7 +2,7 @@
 
 ## 9:00 AM - 12:00 PM
 
-# SQL Plan Management, Bind Peeking, Adaptive Cursor Sharing & Plan Control
+# Histograms, Skewed Data, SQL Plan Management, Bind Peeking & Plan Control
 
 ---
 
@@ -10,11 +10,13 @@
 
 By the end of this half day, trainees should be able to:
 
+* explain skewed data using banking branch and payment examples
+* explain why histograms help Oracle estimate uneven data correctly
+* identify when poor estimates can lead to poor execution plans
 * explain why a good SQL can suddenly become slow without SQL text changes
 * capture and inspect SQL plan baselines
 * understand when SQL Plan Management helps and when it hides the real issue
 * distinguish SQL plan baselines, SQL Profiles, hints, indexes, and histograms
-* demonstrate skewed data with bind variables
 * inspect bind-sensitive and bind-aware cursors
 * understand why one execution plan may not fit every bind value
 * use hints carefully for diagnosis, not as the first production fix
@@ -27,15 +29,21 @@ The whole morning follows one banking incident pattern:
 A payment or branch transaction query was fast yesterday.
 Today it is slow.
 The application team says the SQL text did not change.
-The DBA must prove whether the cause is plan change, skewed data, bind values, or unsafe plan forcing.
+The DBA must first understand the data pattern:
+
+Are all values evenly distributed?
+Or are a few branches, statuses, or customers much larger than the rest?
+
+Only after that can the DBA decide whether the issue is bad estimates, plan change, bind values, or unsafe plan forcing.
 ```
 
 We use two connected labs:
 
-| Lab | Banking story | DBA skill |
-| --- | ------------- | --------- |
+| Topic | Banking story | DBA skill |
+| ----- | ------------- | --------- |
+| Histograms and skew | Branches and payment statuses are not evenly distributed | Understand why estimates and plans can change |
 | Lab 9 | Payment settlement query needs plan stability | Capture and verify a SQL plan baseline |
-| Lab 10 | Same branch report SQL behaves differently for big and small branches | Diagnose skew, histograms, bind peeking, ACS, and hint risk |
+| Lab 10 | Same branch report SQL behaves differently for big and small branches | Diagnose bind peeking, ACS, and hint risk |
 
 ---
 
@@ -62,11 +70,14 @@ NOT:
 
 | Time          | Section                                            |
 | ------------- | -------------------------------------------------- |
-| 9:00 - 9:10   | Day 3 opening and plan regression scenario         |
-| 9:10 - 9:25   | SQL Plan Management mental model                   |
-| 9:25 - 9:45   | Lab setup: payment workload                        |
-| 9:45 - 10:15  | Lab 9: capture and inspect SQL plan baseline       |
-| 10:15 - 10:30 | Plan evolution, fixed baselines, production safety |
+| 9:00 - 9:15   | Histograms and skewed banking data                 |
+| 9:15 - 9:25   | Why skew changes optimizer choices                 |
+| 9:25 - 9:45   | Demo Lab: histogram on failed transactions         |
+| 9:45 - 9:50   | Plan regression scenario                           |
+| 9:50 - 10:00  | SQL Plan Management mental model                   |
+| 10:00 - 10:10 | Lab setup: payment workload                        |
+| 10:10 - 10:25 | Lab 9: capture and inspect SQL plan baseline       |
+| 10:25 - 10:30 | Plan evolution, fixed baselines, production safety |
 | 10:45 - 11:00 | Bind peeking and skewed data                       |
 | 11:00 - 11:35 | Lab 10: bind variables and adaptive cursor sharing |
 | 11:35 - 11:50 | Hints, profiles, baselines, indexes comparison     |
@@ -108,11 +119,485 @@ ALTER SESSION SET optimizer_use_sql_plan_baselines = TRUE;
 
 ---
 
-# SLOT 1 - SQL PLAN MANAGEMENT
+# SLOT 1 - HISTOGRAMS, SKEWED DATA AND SQL PLAN MANAGEMENT
 
 ## 9:00 AM - 10:30 AM
 
-# SECTION 1 - PLAN REGRESSION SCENARIO (9:00 - 9:10)
+# SECTION 1 - HISTOGRAMS AND SKEWED BANKING DATA (9:00 - 9:15)
+
+Banking scenario:
+
+```text
+The bank has 50 branches.
+Branch 1 is a city branch with very high payment volume.
+Branch 3 is a small branch with very low payment volume.
+
+If Oracle assumes every branch has the same number of rows, it may choose the wrong access path.
+```
+
+# Slide 1 - Day 3 Opening
+
+## Time: 9:00 AM - 9:05 AM
+
+## Slide Content
+
+# Start With Data Distribution
+
+Before tuning a SQL plan, ask:
+
+```text
+Is the data evenly distributed?
+Or are some values much bigger than others?
+```
+
+Banking examples:
+
+* one branch processes most transactions
+* most payments are SETTLED, fewer are PENDING
+* a few corporate customers have very large account activity
+* month-end creates unusual volume for salary branches
+
+DBA message:
+
+```text
+Bad estimates often start with misunderstood data distribution.
+```
+
+---
+
+## Trainer Delivery
+
+"Before we talk about SQL Plan Management or bind peeking, we need one foundation:
+
+Oracle chooses plans based on estimates.
+
+Estimates come from statistics.
+
+If the data is uneven and Oracle does not understand that unevenness, the plan can be wrong even when the SQL text is simple."
+
+---
+
+# Slide 2 - What Skewed Data Means
+
+## Time: 9:05 AM - 9:15 AM
+
+## Slide Content
+
+# Skewed Data
+
+Skew means:
+
+```text
+Some values appear much more often than others.
+```
+
+Banking example:
+
+| Value | Meaning | Row pattern |
+| ----- | ------- | ----------- |
+| branch_id = 1 | city branch | very many rows |
+| branch_id = 2 | normal branch | moderate rows |
+| branch_id = 3 | small branch | very few rows |
+
+Why it matters:
+
+```text
+The best plan for a small branch may be bad for a large branch.
+```
+
+DBA benefit:
+
+```text
+You learn when one average estimate is not good enough.
+```
+
+---
+
+# SECTION 2 - WHY HISTOGRAMS MATTER (9:15 - 9:25)
+
+Banking scenario:
+
+```text
+The optimizer knows a table has 305,500 branch transaction rows.
+Without a histogram, it may estimate branch_id values too evenly.
+With a histogram, Oracle can understand that branch 1 is much larger than branch 3.
+```
+
+# Slide 3 - What A Histogram Tells Oracle
+
+## Time: 9:15 AM - 9:20 AM
+
+## Slide Content
+
+# Histogram
+
+A histogram is column statistics that describe value distribution.
+
+Simple idea:
+
+```text
+Not every value has the same row count.
+```
+
+Without histogram:
+
+```text
+Oracle may estimate each branch as roughly average.
+```
+
+With histogram:
+
+```text
+Oracle can estimate common and rare values more accurately.
+```
+
+Banking benefit:
+
+```text
+Better estimates for branch, status, product, or customer segments that are uneven.
+```
+
+---
+
+# Slide 4 - Why DBAs Check Histograms
+
+## Time: 9:20 AM - 9:25 AM
+
+## Slide Content
+
+# DBA Decision Point
+
+When a query filters on a skewed column:
+
+```text
+WHERE branch_id = :b_branch_id
+WHERE status = 'PENDING'
+WHERE customer_segment = 'CORPORATE'
+```
+
+The DBA checks:
+
+* is the column skewed?
+* are statistics fresh?
+* does a histogram exist?
+* are estimated rows close to actual rows?
+* does the access path make sense for common and rare values?
+
+Practical rule:
+
+```text
+Histograms do not tune SQL by themselves.
+They help Oracle make better choices when data is uneven.
+```
+
+---
+
+# SECTION 3 - DEMO LAB: HISTOGRAM ON FAILED TRANSACTIONS (9:25 - 9:45)
+
+Banking scenario:
+
+```text
+A bank has a transaction monitoring table.
+Most transactions are successful.
+Only a small percentage fail.
+
+Operations wants failed transactions quickly because failed transactions may need investigation or retry.
+The DBA wants Oracle to understand that FAILED is rare and SUCCESS is common.
+```
+
+# Slide 5 - Histogram Demo Story
+
+## Time: 9:25 AM - 9:45 AM
+
+## Slide Content
+
+# Banking Histogram Demo
+
+We will compare the same query before and after a histogram.
+
+Data pattern:
+
+```text
+SUCCESS = 95,000 rows
+FAILED  =  5,000 rows
+```
+
+This is skewed data.
+
+DBA question:
+
+```text
+Does Oracle understand that FAILED is much less common than SUCCESS?
+```
+
+What to compare:
+
+```text
+E-Rows = estimated rows
+A-Rows = actual rows
+```
+
+Final teaching line:
+
+```text
+Histogram helps Oracle understand uneven banking data, so it can estimate rows better and choose a smarter execution plan.
+```
+
+---
+
+# Part 0 - Setup Bank Table
+
+Why this step matters:
+
+```text
+The table models a realistic banking pattern: most transactions succeed, only some fail.
+```
+
+```sql
+DROP TABLE bank_txn_demo PURGE;
+
+CREATE TABLE bank_txn_demo AS
+SELECT
+  LEVEL txn_id,
+  CASE
+    WHEN LEVEL <= 95000 THEN 'SUCCESS'
+    ELSE 'FAILED'
+  END txn_status,
+  ROUND(DBMS_RANDOM.VALUE(100, 50000), 2) amount
+FROM dual
+CONNECT BY LEVEL <= 100000;
+```
+
+Meaning:
+
+```text
+SUCCESS = 95,000 rows
+FAILED  = 5,000 rows
+```
+
+---
+
+# Part 1 - Create Index
+
+Why this step matters:
+
+```text
+The failed-transaction query filters by transaction status.
+The index gives Oracle an access path if it decides the filter is selective enough.
+```
+
+```sql
+CREATE INDEX idx_bank_txn_status
+ON bank_txn_demo(txn_status);
+```
+
+---
+
+# Part 2 - Gather Stats Without Histogram
+
+Why this step matters:
+
+```text
+This creates normal column statistics but intentionally prevents a histogram.
+SIZE 1 means no histogram.
+```
+
+```sql
+BEGIN
+  DBMS_STATS.GATHER_TABLE_STATS(
+    ownname    => USER,
+    tabname    => 'BANK_TXN_DEMO',
+    method_opt => 'FOR COLUMNS SIZE 1 txn_status'
+  );
+END;
+/
+```
+
+---
+
+# Part 3 - Confirm Histogram Is None
+
+Why this step matters:
+
+```text
+The DBA verifies the test condition before running the query.
+Oracle has basic stats, but it does not know SUCCESS is very common and FAILED is rare.
+```
+
+```sql
+SELECT column_name, histogram
+FROM user_tab_col_statistics
+WHERE table_name = 'BANK_TXN_DEMO'
+AND column_name = 'TXN_STATUS';
+```
+
+Expected:
+
+```text
+TXN_STATUS    NONE
+```
+
+---
+
+# Part 4 - Run Failed Transaction Query Before Histogram
+
+Why this step matters:
+
+```text
+This shows how Oracle estimates and executes the failed-transaction lookup before it has value-distribution detail.
+```
+
+```sql
+SELECT /* hist_demo_failed_before */
+       *
+FROM bank_txn_demo
+WHERE txn_status = 'FAILED';
+```
+
+Find the exact cursor:
+
+```sql
+COLUMN hist_sql_id NEW_VALUE hist_sql_id
+COLUMN hist_child_no NEW_VALUE hist_child_no
+
+SELECT sql_id AS hist_sql_id,
+       child_number AS hist_child_no,
+       plan_hash_value,
+       executions,
+       buffer_gets,
+       rows_processed,
+       SUBSTR(sql_text,1,100) sql_text
+FROM v$sql
+WHERE sql_text LIKE '%hist_demo_failed_before%'
+AND sql_text NOT LIKE '%v$sql%'
+ORDER BY last_active_time DESC
+FETCH FIRST 1 ROW ONLY;
+```
+
+Check the runtime plan:
+
+```sql
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    '&&hist_sql_id',
+    &&hist_child_no,
+    'ALLSTATS LAST'
+  )
+);
+```
+
+Explain:
+
+```text
+Before histogram, Oracle may estimate rows wrongly because it assumes values are evenly spread.
+Compare E-Rows with A-Rows.
+```
+
+---
+
+# Part 5 - Create Histogram
+
+Why this step matters:
+
+```text
+Now Oracle learns the real distribution of transaction status values.
+```
+
+```sql
+BEGIN
+  DBMS_STATS.GATHER_TABLE_STATS(
+    ownname    => USER,
+    tabname    => 'BANK_TXN_DEMO',
+    method_opt => 'FOR COLUMNS SIZE 254 txn_status'
+  );
+END;
+/
+```
+
+---
+
+# Part 6 - Confirm Histogram Created
+
+Why this step matters:
+
+```text
+The DBA confirms the optimizer has frequency information before comparing the second plan.
+```
+
+```sql
+SELECT column_name, histogram
+FROM user_tab_col_statistics
+WHERE table_name = 'BANK_TXN_DEMO'
+AND column_name = 'TXN_STATUS';
+```
+
+Expected:
+
+```text
+TXN_STATUS    FREQUENCY
+```
+
+---
+
+# Part 7 - Run Same Query After Histogram
+
+Why this step matters:
+
+```text
+The SQL is logically the same, but Oracle now has better information about the status distribution.
+```
+
+```sql
+SELECT /* hist_demo_failed_after */
+       *
+FROM bank_txn_demo
+WHERE txn_status = 'FAILED';
+```
+
+Find the exact cursor:
+
+```sql
+COLUMN hist_sql_id NEW_VALUE hist_sql_id
+COLUMN hist_child_no NEW_VALUE hist_child_no
+
+SELECT sql_id AS hist_sql_id,
+       child_number AS hist_child_no,
+       plan_hash_value,
+       executions,
+       buffer_gets,
+       rows_processed,
+       SUBSTR(sql_text,1,100) sql_text
+FROM v$sql
+WHERE sql_text LIKE '%hist_demo_failed_after%'
+AND sql_text NOT LIKE '%v$sql%'
+ORDER BY last_active_time DESC
+FETCH FIRST 1 ROW ONLY;
+```
+
+Check the runtime plan:
+
+```sql
+SELECT *
+FROM TABLE(
+  DBMS_XPLAN.DISPLAY_CURSOR(
+    '&&hist_sql_id',
+    &&hist_child_no,
+    'ALLSTATS LAST'
+  )
+);
+```
+
+Compare:
+
+```text
+Before histogram: Oracle guessed distribution.
+After histogram : Oracle knows FAILED is rare.
+```
+
+---
+
+# SECTION 4 - PLAN REGRESSION SCENARIO (9:45 - 9:50)
 
 Banking scenario:
 
@@ -121,49 +606,9 @@ The overnight payment settlement job normally finishes before branches open.
 After a statistics refresh, the same payment query takes much longer and delays operational reporting.
 ```
 
-# Slide 1 - Day 3 Opening
+# Slide 6 - Banking Plan Regression Scenario
 
-## Slide Content
-
-# Advanced Production Tuning In A Bank
-
-Production problem:
-
-```text
-Same SQL text.
-Different runtime.
-Business impact.
-```
-
-Today we learn how a DBA separates:
-
-* plan regression
-* bind-value behavior
-* skewed data
-* emergency plan control
-* long-term safe tuning
-
----
-
-## Trainer Delivery
-
-"Day 1 taught us how to read SQL and plans.
-
-Day 2 taught us how to diagnose workload with AWR, ADDM, and advisors.
-
-Day 3 is about production behavior:
-
-SQL was fast yesterday.
-
-SQL is slow today.
-
-The SQL text did not change.
-
-Now we need to understand plan stability, bind values, and concurrency."
-
----
-
-# Slide 2 - Banking Plan Regression Scenario
+## Time: 9:45 AM - 9:50 AM
 
 ## Slide Content
 
@@ -176,30 +621,22 @@ Yesterday: 1 second
 Today:    40 seconds
 ```
 
-Business impact:
+Possible causes:
 
-```text
-settlement dashboard delayed
-operations team cannot confirm pending payments quickly
-support tickets increase
-```
+* statistics refresh
+* data growth
+* data skew
+* new or missing histogram
+* new index or dropped index
+* bind value change
+* optimizer parameter change
+* database patch or upgrade
 
 Technical question:
 
 ```text
-Same SQL, different execution plan
+Did Oracle choose a different plan, and why?
 ```
-
-Why plan may change:
-
-* statistics refresh
-* new index
-* dropped index
-* data growth
-* data skew
-* bind value change
-* optimizer parameter change
-* database patch or upgrade
 
 ---
 
@@ -215,7 +652,7 @@ SQL Plan Management helps us stabilize known good plans for critical SQL."
 
 ---
 
-# SECTION 2 - SQL PLAN MANAGEMENT MENTAL MODEL (9:10 - 9:25)
+# SECTION 5 - SQL PLAN MANAGEMENT MENTAL MODEL (9:50 - 10:00)
 
 Banking scenario:
 
@@ -224,7 +661,9 @@ The DBA finds yesterday's plan was good and today's plan is risky.
 The bank needs a controlled way to keep using the known good plan while investigating the root cause.
 ```
 
-# Slide 3 - What SPM Does
+# Slide 7 - What SPM Does
+
+## Time: 9:50 AM - 9:53 AM
 
 ## Slide Content
 
@@ -252,7 +691,9 @@ stabilize production first, then tune with evidence
 
 ---
 
-# Slide 4 - Key Terms
+# Slide 8 - Key Terms
+
+## Time: 9:53 AM - 9:56 AM
 
 ## Slide Content
 
@@ -285,7 +726,9 @@ In production, fixed plans can be useful during emergencies, but they can also b
 
 ---
 
-# Slide 5 - When To Use Baselines
+# Slide 9 - When To Use Baselines
+
+## Time: 9:56 AM - 10:00 AM
 
 ## Slide Content
 
@@ -316,7 +759,7 @@ Baseline critical SQL, not every SQL.
 
 ---
 
-# SECTION 3 - LAB SETUP: PAYMENT WORKLOAD (9:25 - 9:45)
+# SECTION 6 - LAB SETUP: PAYMENT WORKLOAD (10:00 - 10:10)
 
 Banking scenario:
 
@@ -326,7 +769,9 @@ Most payments are already settled, while a smaller set is pending or failed.
 The pending-today query represents the SQL operations staff cares about.
 ```
 
-# Slide 6 - Lab Objective
+# Slide 10 - Lab Objective
+
+## Time: 10:00 AM - 10:10 AM
 
 ## Slide Content
 
@@ -509,7 +954,7 @@ AND column_name = 'STATUS';
 
 ---
 
-# SECTION 4 - LAB 9: CAPTURE SQL PLAN BASELINE (9:45 - 10:15)
+# SECTION 7 - LAB 9: CAPTURE SQL PLAN BASELINE (10:10 - 10:25)
 
 Banking scenario:
 
@@ -518,7 +963,9 @@ The payment query is business-critical.
 The DBA wants to capture the known good plan so a future stats refresh, patch, or index change does not silently replace it with a bad plan.
 ```
 
-# Slide 7 - Critical SQL
+# Slide 11 - Critical SQL
+
+## Time: 10:10 AM - 10:25 AM
 
 ## Slide Content
 
@@ -808,7 +1255,7 @@ The note text can vary by version. The important check is that the baseline exis
 
 ---
 
-# SECTION 5 - EVOLUTION, FIXED BASELINES & SAFETY (10:15 - 10:30)
+# SECTION 8 - EVOLUTION, FIXED BASELINES & SAFETY (10:25 - 10:30)
 
 Banking scenario:
 
@@ -818,7 +1265,9 @@ Oracle discovers a new plan for the settlement query.
 The DBA must decide whether the new plan is actually better before allowing production to use it.
 ```
 
-# Slide 8 - Plan Evolution
+# Slide 12 - Plan Evolution
+
+## Time: 10:25 AM - 10:27 AM
 
 ## Slide Content
 
@@ -877,7 +1326,9 @@ This is optional because the lab may not have a second candidate plan. Use it to
 
 ---
 
-# Slide 9 - Fixed Baselines
+# Slide 13 - Fixed Baselines
+
+## Time: 10:27 AM - 10:30 AM
 
 ## Slide Content
 
@@ -969,7 +1420,7 @@ Do not run this unless you intentionally want to remove the lab baseline. It is 
 
 ## 10:45 AM - 12:00 PM
 
-# SECTION 6 - BIND PEEKING MENTAL MODEL (10:45 - 11:00)
+# SECTION 9 - BIND PEEKING MENTAL MODEL (10:45 - 11:00)
 
 Banking scenario:
 
@@ -980,7 +1431,9 @@ For a small rural branch it returns very few rows.
 The SQL text is the same, but the best plan may be different.
 ```
 
-# Slide 10 - Same SQL, Different Values
+# Slide 14 - Same SQL, Different Values
+
+## Time: 10:45 AM - 10:52 AM
 
 ## Slide Content
 
@@ -1025,7 +1478,9 @@ That is where bind peeking and adaptive cursor sharing become important."
 
 ---
 
-# Slide 11 - Key Concepts
+# Slide 15 - Key Concepts
+
+## Time: 10:52 AM - 11:00 AM
 
 ## Slide Content
 
@@ -1051,7 +1506,7 @@ Histograms help Oracle know that not every branch_id has the same transaction vo
 
 ---
 
-# SECTION 7 - LAB 10: BIND VARIABLES AND SKEWED DATA (11:00 - 11:35)
+# SECTION 10 - LAB 10: BIND VARIABLES AND ADAPTIVE CURSOR SHARING (11:00 - 11:35)
 
 Banking scenario:
 
@@ -1061,7 +1516,9 @@ Users pass one branch_id at a time.
 The DBA must explain why a query for a large branch needs a different access pattern than a query for a small branch.
 ```
 
-# Slide 12 - Lab Objective
+# Slide 16 - Lab Objective
+
+## Time: 11:00 AM - 11:35 AM
 
 ## Slide Content
 
@@ -1478,7 +1935,7 @@ The worksheet turns the lab into a production-style evidence record.
 
 ---
 
-# SECTION 8 - HINTS, PROFILES, BASELINES, INDEXES (11:35 - 11:50)
+# SECTION 11 - HINTS, PROFILES, BASELINES, INDEXES (11:35 - 11:50)
 
 Banking scenario:
 
@@ -1487,7 +1944,9 @@ An application team asks the DBA to add an INDEX hint because the small-branch r
 The DBA must test whether that same hint damages the head-office branch report.
 ```
 
-# Slide 13 - Why Hints Are Risky With Skew
+# Slide 17 - Why Hints Are Risky With Skew
+
+## Time: 11:35 AM - 11:43 AM
 
 ## Slide Content
 
@@ -1598,7 +2057,9 @@ What happens on month-end when large branches process even more rows?
 
 ---
 
-# Slide 14 - Tool Selection Table
+# Slide 18 - Tool Selection Table
+
+## Time: 11:43 AM - 11:50 AM
 
 ## Slide Content
 
@@ -1635,7 +2096,7 @@ The senior DBA skill is matching the tool to the root cause."
 
 ---
 
-# SECTION 9 - MORNING SUMMARY (11:50 - 12:00)
+# SECTION 12 - MORNING SUMMARY (11:50 - 12:00)
 
 Banking scenario:
 
@@ -1644,7 +2105,9 @@ The incident bridge asks for a clear DBA recommendation.
 The DBA must explain whether the issue is plan regression, bind skew, missing stats, unsafe hints, or bad SQL design.
 ```
 
-# Slide 15 - Key Takeaways
+# Slide 19 - Key Takeaways
+
+## Time: 11:50 AM - 12:00 PM
 
 ## Slide Content
 

@@ -170,6 +170,8 @@ If the SQL is waiting on a lock, adding an index will not fix the immediate prob
 
 # Slide 1 - Core Idea
 
+## Time: 1:00 PM - 1:05 PM
+
 ## Slide Content
 
 # Slow Does Not Always Mean Bad SQL
@@ -214,6 +216,8 @@ Before recommending an index, SQL rewrite, or session kill, first prove whether 
 
 # Slide 2 - Definitions
 
+## Time: 1:05 PM - 1:10 PM
+
 ## Slide Content
 
 | Concept | Banking Example | DBA Meaning |
@@ -227,6 +231,8 @@ Before recommending an index, SQL rewrite, or session kill, first prove whether 
 ---
 
 # Slide 3 - Banking Risk Areas
+
+## Time: 1:10 PM - 1:15 PM
 
 ## Slide Content
 
@@ -289,6 +295,8 @@ This is the production skill that prevents blind session killing.
 ---
 
 # Slide 4 - Views We Use
+
+## Time: 1:15 PM - 1:35 PM
 
 ## Slide Content
 
@@ -501,6 +509,8 @@ After this lab, the DBA should be able to:
 ---
 
 # Slide 5 - Lab Requirement
+
+## Time: 1:35 PM - 2:10 PM
 
 ## Slide Content
 
@@ -932,6 +942,8 @@ Ask for the exact time window and check historical evidence if available.
 
 # Slide 6 - If The Problem Disappears
 
+## Time: 2:10 PM - 2:25 PM
+
 ## Slide Content
 
 # Short-Lived Incidents Need Time Evidence
@@ -1072,6 +1084,8 @@ understand complaint -> collect evidence -> fix SQL/access path -> diagnose lock
 ---
 
 # Slide 7 - Business Scenario
+
+## Time: 2:45 PM - 3:05 PM
 
 ## Slide Content
 
@@ -1915,6 +1929,8 @@ The final takeaway is the working method DBAs should use after the training.
 ---
 
 # Slide 8 - Three-Day Framework
+
+## Time: 4:55 PM - 5:00 PM
 
 ## Slide Content
 
